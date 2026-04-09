@@ -72,7 +72,7 @@ export default function RegisterPage() {
     try {
       const email = await registerAccount(registerState)
       setPendingEmail(email)
-      setSuccessMessage('OTP sent. Use 123456 while mock mode is enabled.')
+      setSuccessMessage('OTP sent. Check your email for the verification code.')
       navigate('/verify-otp', {
         replace: true,
         state: { email },
@@ -216,13 +216,15 @@ export default function RegisterPage() {
               inputMode="numeric"
               maxLength={6}
               onChange={(event) => setOtp(event.target.value)}
-              placeholder="123456"
+              placeholder="6-digit code"
               type="text"
               value={otp}
             />
           </div>
           {errorMessage ? <div className={styles.error}>{errorMessage}</div> : null}
-          <div className={styles.hint}>Use `123456` while mock mode is enabled.</div>
+          <div className={styles.hint}>
+            Enter the six-digit code sent to your email address.
+          </div>
           <button className={styles.submit} disabled={isSubmitting} type="submit">
             {isSubmitting ? 'Verifying OTP...' : 'Verify OTP'}
           </button>

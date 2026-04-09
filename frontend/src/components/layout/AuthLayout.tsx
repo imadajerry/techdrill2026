@@ -11,7 +11,7 @@ export default function AuthLayout({ children }: PropsWithChildren) {
           <h1 className={styles.headline}>Built for sharp product drops.</h1>
         </div>
         <p className={styles.note}>
-          Sign up to get a smooth sailing experience       
+          Sign in with the credentials issued for your customer or admin account.
         </p>
       </section>
       <section className={styles.panel}>

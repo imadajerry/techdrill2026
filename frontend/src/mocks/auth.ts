@@ -95,7 +95,7 @@ export async function mockLogin(
     return {
       success: false,
       message:
-        'Invalid email or password. Try customer@techdrill.dev / password123.',
+        'Invalid email or password.',
     }
   }
 

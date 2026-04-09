@@ -13,9 +13,8 @@ export default function HomePage() {
           <p className={styles.eyebrow}>Fresh arrivals</p>
           <h1 className={styles.title}>Street-ready pairs with performance roots.</h1>
           <p className={styles.copy}>
-            The customer storefront now has a real protected entry point,
-            premium visual direction, and mock-backed product cards ready for
-            product-list and detail routes.
+            The customer storefront now runs without seeded catalog fixtures, so
+            the live collection can come directly from backend inventory data.
           </p>
           <div className={styles.ctaRow}>
             <Link className={styles.primaryCta} to="/products">
@@ -53,8 +52,8 @@ export default function HomePage() {
           <div>
             <h2 className={styles.sectionTitle}>Featured drop</h2>
             <p className={styles.sectionCopy}>
-              Mock catalog data already follows the shared product shape so the
-              swap to real Axios calls is one toggle in the API layer.
+              Featured products render from the shared product contract without
+              any frontend-only seed data.
             </p>
           </div>
         </div>

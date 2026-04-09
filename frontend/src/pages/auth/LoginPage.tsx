@@ -9,8 +9,8 @@ type LoginFormState = {
 }
 
 const defaultState: LoginFormState = {
-  email: 'customer@techdrill.dev',
-  password: 'password123',
+  email: '',
+  password: '',
 }
 
 export default function LoginPage() {
