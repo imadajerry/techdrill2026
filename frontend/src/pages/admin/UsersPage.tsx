@@ -54,10 +54,6 @@ export default function AdminUsersPage() {
           <div className={styles.asideBlock}>
             <p className={styles.asideLabel}>Pending approvals</p>
             <p className={styles.asideValue}>{pendingCount}</p>
-            <p className={styles.asideCopy}>
-              Customer onboarding is OTP-first while admin accounts remain a
-              controlled back-office workflow.
-            </p>
           </div>
         }
         description="The user management surface separates customers from admin operators and keeps status, role, and order history visible in one list."

@@ -53,16 +53,7 @@ export default function LoginPage() {
 
   return (
     <section className={styles.card}>
-      <p className={styles.eyebrow}>Shared login</p>
-      <h1 className={styles.title}>Sign in to storefront or admin.</h1>
-      <p className={styles.copy}>
-        Role redirect happens automatically after authentication. Use the mock
-        accounts below to switch between customer and admin views.
-      </p>
-      <div className={styles.hint}>
-        `customer@techdrill.dev`, `admin@techdrill.dev`, or
-        `superadmin@techdrill.dev` with `password123`.
-      </div>
+      <h1 className={styles.title}>Sign in</h1>
       <form className={styles.form} onSubmit={handleSubmit}>
         <div className={styles.field}>
           <label className={styles.label} htmlFor="login-email">
@@ -110,7 +101,7 @@ export default function LoginPage() {
       <p className={styles.footer}>
         Need a customer account?{' '}
         <Link className={styles.link} to="/register">
-          Register and verify with OTP
+          Register
         </Link>
       </p>
     </section>

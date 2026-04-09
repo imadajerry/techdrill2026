@@ -118,15 +118,15 @@ export default function RegisterPage() {
   return (
     <section className={styles.card}>
       <p className={styles.eyebrow}>
-        {isOtpStep ? 'OTP verification' : 'Customer onboarding'}
+        {isOtpStep ? 'OTP verification' : 'Register'}
       </p>
       <h1 className={styles.title}>
-        {isOtpStep ? 'Activate your account.' : 'Create a customer account.'}
+        {isOtpStep ? 'Activate your account.' : 'Create an account.'}
       </h1>
       <p className={styles.copy}>
         {isOtpStep
           ? `We sent a six-digit code to ${pendingEmail || 'your email'}.`
-          : 'Registration is customer-first. Admin accounts stay managed from the back office.'}
+          : ''}
       </p>
       {!isOtpStep ? (
         <form className={styles.form} onSubmit={handleRegister}>
@@ -231,7 +231,7 @@ export default function RegisterPage() {
       <p className={styles.footer}>
         Already have access?{' '}
         <Link className={styles.link} to="/login">
-          Back to login
+          Login
         </Link>
       </p>
     </section>
