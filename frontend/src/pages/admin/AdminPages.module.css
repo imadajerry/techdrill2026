@@ -6,7 +6,7 @@
 .statsGrid {
   display: grid;
   gap: 16px;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 }
 
 .asideBlock {
@@ -181,6 +181,34 @@
   font-weight: 700;
 }
 
+.editorGrid {
+  align-items: end;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.editorField {
+  display: grid;
+  gap: 8px;
+}
+
+.numberInput {
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  color: var(--color-text-strong);
+  font: inherit;
+  min-height: 44px;
+  padding: 0 14px;
+}
+
+.inlineHint {
+  color: var(--color-text-muted);
+  line-height: 1.6;
+  margin: 0;
+}
+
 .progressTrack {
   background: rgba(32, 25, 19, 0.08);
   border-radius: 999px;
@@ -239,5 +267,9 @@
 
   .rowActions {
     justify-content: start;
+  }
+
+  .editorGrid {
+    grid-template-columns: 1fr;
   }
 }

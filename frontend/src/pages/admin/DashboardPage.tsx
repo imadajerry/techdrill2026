@@ -11,11 +11,6 @@ export default function DashboardPage() {
         <div>
           <p className={styles.eyebrow}>Admin dashboard</p>
           <h1 className={styles.title}>Operations at a glance.</h1>
-          <p className={styles.copy}>
-            This is the first admin surface wired behind role-gated routing. It
-            gives the team a stable shell for orders, products, reports, and
-            user moderation.
-          </p>
         </div>
       </div>
 
