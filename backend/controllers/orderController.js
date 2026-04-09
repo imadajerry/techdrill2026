@@ -1,23 +1,123 @@
 const Order = require('../models/orderModel');
-const db = require('../config/db');
+const Cart = require('../models/cartModel');
+const { ok, fail } = require('../utils/responseHelper');
 
-// ➕ Place Order (from cart)
+// Transform flat joined rows into nested CustomerOrder shape
+function groupOrderRows(rows) {
+  const ordersMap = new Map();
+
+  for (const row of rows) {
+    const orderId = String(row.id);
+
+    if (!ordersMap.has(orderId)) {
+      ordersMap.set(orderId, {
+        id: orderId,
+        total: Number(row.total_amount),
+        status: row.status,
+        paymentMethod: row.payment_method,
+        shippingAddress: row.shipping_address || '',
+        eta: row.eta ? new Date(row.eta).toISOString() : '',
+        trackingNote: row.tracking_note || '',
+        placedAt: new Date(row.created_at).toISOString(),
+        items: [],
+      });
+    }
+
+    const order = ordersMap.get(orderId);
+    order.items.push({
+      id: String(row.item_id),
+      quantity: row.item_quantity,
+      size: row.item_size || '',
+      product: {
+        id: String(row.product_id),
+        name: row.product_name,
+        category: row.product_category,
+        price: Number(row.product_price),
+        originalPrice: row.product_originalPrice ? Number(row.product_originalPrice) : undefined,
+        image: row.product_image,
+        description: row.product_description,
+        stock: row.product_stock,
+        badge: row.product_badge || undefined,
+        targetGroup: row.product_targetGroup || undefined,
+      },
+    });
+  }
+
+  return Array.from(ordersMap.values());
+}
+
+// Transform admin order rows
+function normalizeAdminOrder(row) {
+  return {
+    id: String(row.id),
+    customerName: row.customer_name,
+    customerEmail: row.customer_email,
+    itemCount: row.item_count,
+    total: Number(row.total_amount),
+    status: row.status,
+    paymentStatus: row.payment_status,
+    placedAt: new Date(row.created_at).toISOString(),
+  };
+}
+
+function getTrackingNote(status) {
+  const notes = {
+    accepted: 'The operations team accepted the order and moved it into the live queue.',
+    processed: 'Warehouse QC is complete and the shipment is moving toward dispatch.',
+    dispatched: 'The parcel left the hub and is now in the courier network.',
+    delivered: 'The order reached the customer and delivery has been confirmed.',
+    rejected: 'The order was rejected by the operations team.',
+  };
+  return notes[status] || '';
+}
+
+function createEtaDate() {
+  const eta = new Date();
+  eta.setDate(eta.getDate() + 4);
+  return eta;
+}
+
+// ➕ Place Order
 const placeOrder = (req, res) => {
-  const { user_id, items, total_amount } = req.body;
+  const userId = req.user.sub;
+  const { items, total_amount, payment_method, shipping_address } = req.body;
 
-  // Step 1: Create order
-  Order.createOrder(user_id, total_amount, (err, result) => {
-    if (err) return res.status(500).json({ message: "DB Error" });
+  if (!items || items.length === 0) {
+    return fail(res, 'Order must contain at least one item.');
+  }
+
+  if (!shipping_address || !shipping_address.trim()) {
+    return fail(res, 'Shipping address is required.');
+  }
+
+  const orderData = {
+    user_id: userId,
+    total_amount,
+    payment_method: payment_method || 'COD',
+    payment_status: 'paid',
+    shipping_address: shipping_address.trim(),
+    eta: createEtaDate(),
+    tracking_note: 'Order confirmed and waiting for ops acceptance. Tracking will update from the admin queue.',
+  };
+
+  Order.createOrder(orderData, (err, result) => {
+    if (err) return fail(res, 'Database error.', 500);
 
     const orderId = result.insertId;
 
-    // Step 2: Add items
     Order.addOrderItems(orderId, items, (err) => {
-      if (err) return res.status(500).json({ message: "Items Error" });
+      if (err) return fail(res, 'Failed to add order items.', 500);
 
-      res.status(201).json({
-        message: "Order placed successfully",
-        orderId
+      // Clear cart after order placed
+      Cart.clearCartByUser(userId, () => {
+        // Fetch the just-created order to return it fully populated
+        Order.getOrderById(orderId, (err, rows) => {
+          if (err || rows.length === 0) {
+            return ok(res, { id: String(orderId) }, 'Order placed successfully.', 201);
+          }
+          const orders = groupOrderRows(rows);
+          return ok(res, orders[0], 'Order placed successfully.', 201);
+        });
       });
     });
   });
@@ -25,21 +125,19 @@ const placeOrder = (req, res) => {
 
 // 📥 Get user orders
 const getUserOrders = (req, res) => {
-  const { userId } = req.params;
+  const userId = req.user.sub;
 
   Order.getOrdersByUser(userId, (err, results) => {
-    if (err) return res.status(500).json({ message: "DB Error" });
-
-    res.json(results);
+    if (err) return fail(res, 'Database error.', 500);
+    return ok(res, groupOrderRows(results));
   });
 };
 
 // 📥 Get all orders (Admin)
 const getAllOrders = (req, res) => {
   Order.getAllOrders((err, results) => {
-    if (err) return res.status(500).json({ message: "DB Error" });
-
-    res.json(results);
+    if (err) return fail(res, 'Database error.', 500);
+    return ok(res, results.map(normalizeAdminOrder));
   });
 };
 
@@ -48,18 +146,17 @@ const updateStatus = (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
 
-  const validStatus = [
-    'placed','accepted','rejected','processed','dispatched','delivered'
-  ];
+  const validStatus = ['placed', 'accepted', 'rejected', 'processed', 'dispatched', 'delivered'];
 
   if (!validStatus.includes(status)) {
-    return res.status(400).json({ message: "Invalid status" });
+    return fail(res, 'Invalid status.');
   }
 
-  Order.updateOrderStatus(id, status, (err) => {
-    if (err) return res.status(500).json({ message: "DB Error" });
+  const trackingNote = getTrackingNote(status);
 
-    res.json({ message: "Order status updated" });
+  Order.updateOrderStatus(id, status, trackingNote, (err) => {
+    if (err) return fail(res, 'Database error.', 500);
+    return ok(res, { id: String(id), status, trackingNote }, 'Order status updated.');
   });
 };
 
@@ -67,5 +164,5 @@ module.exports = {
   placeOrder,
   getUserOrders,
   getAllOrders,
-  updateStatus
+  updateStatus,
 };

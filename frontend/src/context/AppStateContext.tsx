@@ -7,6 +7,17 @@ import {
   useState,
   type PropsWithChildren,
 } from 'react'
+import { useAuth } from './AuthContext'
+
+// API imports
+import * as productsApi from '../api/products'
+import * as cartApi from '../api/cart'
+import * as ordersApi from '../api/orders'
+import * as adminApi from '../api/admin'
+import * as favouritesApi from '../api/favourites'
+import * as recommendationsApi from '../api/recommendations'
+
+// Mock fallbacks
 import { adminDashboardMock } from '../mocks/adminDashboard'
 import {
   adminOrders as initialAdminOrders,
@@ -24,6 +35,8 @@ import {
   favouriteProducts as initialFavouriteProducts,
   recommendedProducts as initialRecommendedProducts,
 } from '../mocks/products'
+
+// Types
 import type {
   AdminOrderRecord,
   ExportRecord,
@@ -37,6 +50,12 @@ import type { CartItem } from '../types/cart'
 import type { DashboardSummary } from '../types/dashboard'
 import type { CheckoutInput, CustomerOrder, OrderStatus } from '../types/order'
 import type { Product } from '../types/product'
+
+/**
+ * Set to true to use the real backend API.
+ * Set to false to use mock data (for offline demos or when the backend is not running).
+ */
+const USE_API = true
 
 const sizeOptions = ['UK 7', 'UK 8', 'UK 9', 'UK 10']
 
@@ -70,6 +89,7 @@ type AppStateContextValue = {
   getCartQuantity: (productId: string) => number
   inventoryItems: InventoryItem[]
   isFavourite: (productId: string) => boolean
+  isLoading: boolean
   managedUsers: ManagedUser[]
   placeOrder: (
     input: CheckoutInput,
@@ -80,6 +100,9 @@ type AppStateContextValue = {
   products: Product[]
   recentExports: ExportRecord[]
   recommendedProducts: Product[]
+  refreshProducts: () => void
+  refreshCart: () => void
+  refreshOrders: () => void
   reportTemplates: ReportTemplate[]
   toggleFavourite: (productId: string) => boolean
   togglePricingCampaign: (campaignId: string) => PricingCampaign['status'] | null
@@ -92,15 +115,14 @@ type AppStateContextValue = {
 
 const AppStateContext = createContext<AppStateContextValue | undefined>(undefined)
 
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
 function cloneProduct(product: Product): Product {
   return { ...product }
 }
 
 function cloneCartItem(item: CartItem): CartItem {
-  return {
-    ...item,
-    product: cloneProduct(item.product),
-  }
+  return { ...item, product: cloneProduct(item.product) }
 }
 
 function cloneCustomerOrder(order: CustomerOrder): CustomerOrder {
@@ -114,9 +136,7 @@ function cloneCustomerOrder(order: CustomerOrder): CustomerOrder {
 }
 
 function cloneInventoryItem(item: InventoryItem): InventoryItem {
-  return {
-    ...item,
-  }
+  return { ...item }
 }
 
 function cloneAdminOrder(order: AdminOrderRecord): AdminOrderRecord {
@@ -148,32 +168,15 @@ function getProductByName(products: Product[], productName: string) {
 }
 
 function getNextOrderStatus(status: OrderStatus): OrderStatus | null {
-  if (status === 'placed') {
-    return 'accepted'
-  }
-
-  if (status === 'accepted') {
-    return 'processed'
-  }
-
-  if (status === 'processed') {
-    return 'dispatched'
-  }
-
-  if (status === 'dispatched') {
-    return 'delivered'
-  }
-
+  if (status === 'placed') return 'accepted'
+  if (status === 'accepted') return 'processed'
+  if (status === 'processed') return 'dispatched'
+  if (status === 'dispatched') return 'delivered'
   return null
 }
 
-function getNextUserStatus(
-  status: ManagedUser['status'],
-): ManagedUser['status'] {
-  if (status === 'pending' || status === 'blocked') {
-    return 'active'
-  }
-
+function getNextUserStatus(status: ManagedUser['status']): ManagedUser['status'] {
+  if (status === 'pending' || status === 'blocked') return 'active'
   return 'blocked'
 }
 
@@ -188,18 +191,9 @@ function buildStorefrontProduct(
   status: PricingCampaign['status'],
 ): Product {
   if (status === 'live') {
-    return {
-      ...currentProduct,
-      originalPrice: basePrice,
-      price: salePrice,
-    }
+    return { ...currentProduct, originalPrice: basePrice, price: salePrice }
   }
-
-  return {
-    ...currentProduct,
-    originalPrice: undefined,
-    price: basePrice,
-  }
+  return { ...currentProduct, originalPrice: undefined, price: basePrice }
 }
 
 function buildOrderId() {
@@ -218,12 +212,7 @@ function summarizeCart(cartItems: CartItem[]) {
     0,
   )
   const shipping = cartItems.length === 0 || subtotal >= 10000 ? 0 : 299
-
-  return {
-    shipping,
-    subtotal,
-    total: subtotal + shipping,
-  }
+  return { shipping, subtotal, total: subtotal + shipping }
 }
 
 function createDashboardSummary(
@@ -231,12 +220,7 @@ function createDashboardSummary(
   inventoryItems: InventoryItem[],
 ): DashboardSummary {
   const orderCounts = [
-    'placed',
-    'accepted',
-    'rejected',
-    'processed',
-    'dispatched',
-    'delivered',
+    'placed', 'accepted', 'rejected', 'processed', 'dispatched', 'delivered',
   ].map((status) => ({
     label: status[0].toUpperCase() + status.slice(1),
     value: adminOrders.filter((order) => order.status === status).length,
@@ -254,10 +238,7 @@ function createDashboardSummary(
 
   const lowStockAlerts = inventoryItems
     .filter((item) => item.stock <= item.reorderLevel)
-    .map((item) => ({
-      name: item.name,
-      stock: item.stock,
-    }))
+    .map((item) => ({ name: item.name, stock: item.stock }))
 
   return {
     todaysCollection,
@@ -271,50 +252,192 @@ function createDashboardSummary(
   }
 }
 
+// ── Provider ──────────────────────────────────────────────────────────────────
+
 export function AppStateProvider({ children }: PropsWithChildren) {
+  const { isAuthenticated, user, role } = useAuth()
+
+  // Loading state
+  const [isLoading, setIsLoading] = useState(USE_API)
+
+  // Core data
   const [products, setProducts] = useState<Product[]>(() =>
     cloneProducts(catalogProducts),
   )
   const [cartItems, setCartItems] = useState<CartItem[]>(() =>
-    initialCartItems.map(cloneCartItem),
+    USE_API ? [] : initialCartItems.map(cloneCartItem),
   )
   const [favouriteIds, setFavouriteIds] = useState<string[]>(() =>
-    initialFavouriteProducts.map((product) => product.id),
+    USE_API ? [] : initialFavouriteProducts.map((product) => product.id),
   )
   const [customerOrders, setCustomerOrders] = useState<CustomerOrder[]>(() =>
-    initialCustomerOrders.map(cloneCustomerOrder),
+    USE_API ? [] : initialCustomerOrders.map(cloneCustomerOrder),
   )
+  const [recommendedProducts, setRecommendedProducts] = useState<Product[]>(() =>
+    USE_API ? [] : initialRecommendedProducts.map(cloneProduct),
+  )
+
+  // Admin data
   const [adminOrders, setAdminOrders] = useState<AdminOrderRecord[]>(() =>
-    initialAdminOrders.map(cloneAdminOrder),
+    USE_API ? [] : initialAdminOrders.map(cloneAdminOrder),
   )
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>(() =>
-    initialInventoryItems.map(cloneInventoryItem),
+    USE_API ? [] : initialInventoryItems.map(cloneInventoryItem),
   )
   const [managedUsers, setManagedUsers] = useState<ManagedUser[]>(() =>
-    initialManagedUsers.map(cloneManagedUser),
+    USE_API ? [] : initialManagedUsers.map(cloneManagedUser),
   )
-  const [recentExports, setRecentExports] = useState<ExportRecord[]>(() =>
-    initialRecentExports.map(cloneReport),
-  )
+  const [dashboardFromApi, setDashboardFromApi] = useState<DashboardSummary | null>(null)
+
+  // Pricing stays client-only (no backend endpoints for pricing campaigns in this iteration)
   const [pricingCampaigns, setPricingCampaigns] = useState<PricingCampaign[]>(() =>
     initialPricingCampaigns.map(cloneCampaign),
   )
   const [priceHistory, setPriceHistory] = useState<PriceHistoryEntry[]>(() =>
     initialPriceHistory.map(clonePriceHistoryEntry),
   )
+  const [recentExports, setRecentExports] = useState<ExportRecord[]>(() =>
+    initialRecentExports.map(cloneReport),
+  )
+
   const reportTimers = useRef<number[]>([])
 
   useEffect(() => {
     const timers = reportTimers
-
     return () => {
-      const pendingTimers = timers.current
-
-      pendingTimers.forEach((timerId) => {
-        window.clearTimeout(timerId)
-      })
+      timers.current.forEach((timerId) => window.clearTimeout(timerId))
     }
   }, [])
+
+  // ── API Data Fetching ─────────────────────────────────────────────────────
+
+  async function fetchProducts() {
+    if (!USE_API) return
+    try {
+      const response = await productsApi.getProducts()
+      if (response.success) {
+        setProducts(response.data)
+      }
+    } catch {
+      // Fall back to mock data on error
+      console.warn('Failed to fetch products from API, using mocks')
+      setProducts(cloneProducts(catalogProducts))
+    }
+  }
+
+  async function fetchCart() {
+    if (!USE_API || !isAuthenticated) return
+    try {
+      const response = await cartApi.getCart()
+      if (response.success) {
+        setCartItems(response.data)
+      }
+    } catch {
+      console.warn('Failed to fetch cart from API')
+    }
+  }
+
+  async function fetchOrders() {
+    if (!USE_API || !isAuthenticated) return
+    try {
+      const response = await ordersApi.getMyOrders()
+      if (response.success) {
+        setCustomerOrders(response.data)
+      }
+    } catch {
+      console.warn('Failed to fetch orders from API')
+    }
+  }
+
+  async function fetchFavouriteIds() {
+    if (!USE_API || !isAuthenticated) return
+    try {
+      const response = await favouritesApi.getFavouriteIds()
+      if (response.success) {
+        setFavouriteIds(response.data)
+      }
+    } catch {
+      console.warn('Failed to fetch favourites from API')
+    }
+  }
+
+  async function fetchRecommendations() {
+    if (!USE_API || !user) return
+    try {
+      const response = await recommendationsApi.getRecommendations(user.id)
+      if (response.success && response.data.length > 0) {
+        setRecommendedProducts(response.data)
+      }
+    } catch {
+      console.warn('Failed to fetch recommendations from API')
+    }
+  }
+
+  async function fetchAdminData() {
+    if (!USE_API || !isAuthenticated || (role !== 'admin' && role !== 'superadmin')) return
+
+    try {
+      const [dashboardRes, ordersRes, usersRes, inventoryRes] = await Promise.allSettled([
+        adminApi.getDashboard(),
+        adminApi.getAllOrders(),
+        adminApi.getUsers(),
+        adminApi.getInventory(),
+      ])
+
+      if (dashboardRes.status === 'fulfilled' && dashboardRes.value.success) {
+        setDashboardFromApi(dashboardRes.value.data)
+      }
+      if (ordersRes.status === 'fulfilled' && ordersRes.value.success) {
+        setAdminOrders(ordersRes.value.data)
+      }
+      if (usersRes.status === 'fulfilled' && usersRes.value.success) {
+        setManagedUsers(usersRes.value.data)
+      }
+      if (inventoryRes.status === 'fulfilled' && inventoryRes.value.success) {
+        setInventoryItems(inventoryRes.value.data)
+      }
+    } catch {
+      console.warn('Failed to fetch admin data from API, using mocks')
+      setAdminOrders(initialAdminOrders.map(cloneAdminOrder))
+      setInventoryItems(initialInventoryItems.map(cloneInventoryItem))
+      setManagedUsers(initialManagedUsers.map(cloneManagedUser))
+    }
+  }
+
+  // Fetch all data on mount / auth change
+  useEffect(() => {
+    if (!USE_API) {
+      setIsLoading(false)
+      return
+    }
+
+    async function loadData() {
+      setIsLoading(true)
+
+      // Products are public — always fetch
+      await fetchProducts()
+
+      if (isAuthenticated) {
+        await Promise.allSettled([
+          fetchCart(),
+          fetchOrders(),
+          fetchFavouriteIds(),
+          fetchRecommendations(),
+        ])
+
+        if (role === 'admin' || role === 'superadmin') {
+          await fetchAdminData()
+        }
+      }
+
+      setIsLoading(false)
+    }
+
+    loadData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, role])
+
+  // ── Sync helpers ──────────────────────────────────────────────────────────
 
   function syncProductReferences(updatedProduct: Product) {
     setProducts((currentProducts) =>
@@ -325,10 +448,7 @@ export function AppStateProvider({ children }: PropsWithChildren) {
     setCartItems((currentItems) =>
       currentItems.map((item) =>
         item.product.id === updatedProduct.id
-          ? {
-              ...item,
-              product: updatedProduct,
-            }
+          ? { ...item, product: updatedProduct }
           : item,
       ),
     )
@@ -337,10 +457,7 @@ export function AppStateProvider({ children }: PropsWithChildren) {
         ...order,
         items: order.items.map((item) =>
           item.product.id === updatedProduct.id
-            ? {
-                ...item,
-                product: updatedProduct,
-              }
+            ? { ...item, product: updatedProduct }
             : item,
         ),
       })),
@@ -363,15 +480,12 @@ export function AppStateProvider({ children }: PropsWithChildren) {
   function syncInventoryBasePrice(productName: string, basePrice: number) {
     setInventoryItems((currentItems) =>
       currentItems.map((item) =>
-        item.name === productName
-          ? {
-              ...item,
-              price: basePrice,
-            }
-          : item,
+        item.name === productName ? { ...item, price: basePrice } : item,
       ),
     )
   }
+
+  // ── Actions ───────────────────────────────────────────────────────────────
 
   function addToCart(productId: string, size: string): AddToCartResult {
     const selectedProduct = getProductById(products, productId)
@@ -408,13 +522,17 @@ export function AppStateProvider({ children }: PropsWithChildren) {
 
       return currentItems.map((item) =>
         item.id === existingItem.id
-          ? {
-              ...item,
-              quantity: item.quantity + 1,
-            }
+          ? { ...item, quantity: item.quantity + 1 }
           : item,
       )
     })
+
+    // Fire-and-forget API call
+    if (USE_API && isAuthenticated) {
+      cartApi.addToCart(productId, size, 1, selectedProduct.price).catch(() => {
+        console.warn('Failed to sync cart addition to API')
+      })
+    }
 
     return outcome
   }
@@ -432,31 +550,50 @@ export function AppStateProvider({ children }: PropsWithChildren) {
       return [...currentIds, productId]
     })
 
+    // Fire-and-forget API call
+    if (USE_API && isAuthenticated) {
+      if (nextFavourite) {
+        favouritesApi.addFavourite(productId).catch(() => {
+          console.warn('Failed to sync favourite to API')
+        })
+      } else {
+        favouritesApi.removeFavourite(productId).catch(() => {
+          console.warn('Failed to sync favourite removal to API')
+        })
+      }
+    }
+
     return nextFavourite
   }
 
   function updateCartItemQuantity(itemId: string, delta: number) {
+    let newQuantity = 0
+
     setCartItems((currentItems) =>
       currentItems.map((item) => {
-        if (item.id !== itemId) {
-          return item
-        }
-
-        return {
-          ...item,
-          quantity: Math.max(
-            1,
-            Math.min(item.product.stock, item.quantity + delta),
-          ),
-        }
+        if (item.id !== itemId) return item
+        newQuantity = Math.max(1, Math.min(item.product.stock, item.quantity + delta))
+        return { ...item, quantity: newQuantity }
       }),
     )
+
+    if (USE_API && isAuthenticated && newQuantity > 0) {
+      cartApi.updateCartItem(itemId, newQuantity).catch(() => {
+        console.warn('Failed to sync cart update to API')
+      })
+    }
   }
 
   function removeCartItem(itemId: string) {
     setCartItems((currentItems) =>
       currentItems.filter((item) => item.id !== itemId),
     )
+
+    if (USE_API && isAuthenticated) {
+      cartApi.removeCartItem(itemId).catch(() => {
+        console.warn('Failed to sync cart removal to API')
+      })
+    }
   }
 
   function advanceAdminOrder(orderId: string) {
@@ -464,16 +601,9 @@ export function AppStateProvider({ children }: PropsWithChildren) {
 
     setAdminOrders((currentOrders) =>
       currentOrders.map((order) => {
-        if (order.id !== orderId) {
-          return order
-        }
-
+        if (order.id !== orderId) return order
         nextStatus = getNextOrderStatus(order.status)
-
-        if (!nextStatus) {
-          return order
-        }
-
+        if (!nextStatus) return order
         return {
           ...order,
           paymentStatus:
@@ -485,9 +615,7 @@ export function AppStateProvider({ children }: PropsWithChildren) {
       }),
     )
 
-    if (!nextStatus) {
-      return null
-    }
+    if (!nextStatus) return null
 
     setCustomerOrders((currentOrders) =>
       currentOrders.map((order) =>
@@ -502,11 +630,18 @@ export function AppStateProvider({ children }: PropsWithChildren) {
                     ? 'Warehouse QC is complete and the shipment is moving toward dispatch.'
                     : nextStatus === 'dispatched'
                       ? 'The parcel left the hub and is now in the courier network.'
-                      : 'The order reached the customer and delivery has been confirmed.'
+                      : 'The order reached the customer and delivery has been confirmed.',
             }
           : order,
       ),
     )
+
+    // Fire-and-forget API call
+    if (USE_API && isAuthenticated && nextStatus) {
+      adminApi.updateOrderStatus(orderId, nextStatus).catch(() => {
+        console.warn('Failed to sync order status to API')
+      })
+    }
 
     return nextStatus
   }
@@ -515,43 +650,36 @@ export function AppStateProvider({ children }: PropsWithChildren) {
     let nextStatus: ManagedUser['status'] | null = null
 
     setManagedUsers((currentUsers) =>
-      currentUsers.map((user) => {
-        if (user.id !== userId) {
-          return user
-        }
-
-        nextStatus = getNextUserStatus(user.status)
-
-        return {
-          ...user,
-          status: nextStatus,
-        }
+      currentUsers.map((u) => {
+        if (u.id !== userId) return u
+        nextStatus = getNextUserStatus(u.status)
+        return { ...u, status: nextStatus }
       }),
     )
+
+    // Fire-and-forget API call
+    if (USE_API && isAuthenticated && nextStatus) {
+      adminApi.updateUserStatus(userId, nextStatus).catch(() => {
+        console.warn('Failed to sync user status to API')
+      })
+    }
 
     return nextStatus
   }
 
   function adjustInventoryStock(itemId: string, delta: number) {
     let updatedProduct: Product | null = null
+    let newStock = 0
 
     setInventoryItems((currentItems) =>
       currentItems.map((item) => {
-        if (item.id !== itemId) {
-          return item
-        }
-
-        const stock = Math.max(0, item.stock + delta)
-
-        updatedProduct = {
-          ...item,
-          stock,
-        }
-
+        if (item.id !== itemId) return item
+        newStock = Math.max(0, item.stock + delta)
+        updatedProduct = { ...item, stock: newStock }
         return {
           ...item,
-          reservedStock: Math.min(item.reservedStock, stock),
-          stock,
+          reservedStock: Math.min(item.reservedStock, newStock),
+          stock: newStock,
         }
       }),
     )
@@ -559,15 +687,18 @@ export function AppStateProvider({ children }: PropsWithChildren) {
     if (updatedProduct) {
       syncProductReferences(updatedProduct)
     }
+
+    if (USE_API && isAuthenticated) {
+      adminApi.updateInventory(itemId, { stock: newStock }).catch(() => {
+        console.warn('Failed to sync inventory stock to API')
+      })
+    }
   }
 
   function adjustInventoryReserved(itemId: string, delta: number) {
     setInventoryItems((currentItems) =>
       currentItems.map((item) => {
-        if (item.id !== itemId) {
-          return item
-        }
-
+        if (item.id !== itemId) return item
         return {
           ...item,
           reservedStock: Math.max(
@@ -580,15 +711,10 @@ export function AppStateProvider({ children }: PropsWithChildren) {
   }
 
   function updateInventoryBasePrice(itemId: string, nextPrice: number) {
-    if (!Number.isFinite(nextPrice) || nextPrice <= 0) {
-      return false
-    }
+    if (!Number.isFinite(nextPrice) || nextPrice <= 0) return false
 
     const currentItem = inventoryItems.find((item) => item.id === itemId)
-
-    if (!currentItem) {
-      return false
-    }
+    if (!currentItem) return false
 
     const activeCampaign = pricingCampaigns.find(
       (campaign) =>
@@ -598,22 +724,14 @@ export function AppStateProvider({ children }: PropsWithChildren) {
 
     setInventoryItems((currentItems) =>
       currentItems.map((item) =>
-        item.id === itemId
-          ? {
-              ...item,
-              price: nextPrice,
-            }
-          : item,
+        item.id === itemId ? { ...item, price: nextPrice } : item,
       ),
     )
 
     setPricingCampaigns((currentCampaigns) =>
       currentCampaigns.map((campaign) =>
         campaign.productName === currentItem.name
-          ? {
-              ...campaign,
-              basePrice: nextPrice,
-            }
+          ? { ...campaign, basePrice: nextPrice }
           : campaign,
       ),
     )
@@ -625,11 +743,16 @@ export function AppStateProvider({ children }: PropsWithChildren) {
         activeCampaign?.salePrice ?? nextPrice,
         activeCampaign?.status ?? 'ended',
       )
-
       syncProductReferences(updatedProduct)
     }
 
     appendPriceHistory(currentItem.name, nextPrice, 'Base price updated from inventory.')
+
+    if (USE_API && isAuthenticated) {
+      adminApi.updateInventory(itemId, { price: nextPrice }).catch(() => {
+        console.warn('Failed to sync price update to API')
+      })
+    }
 
     return true
   }
@@ -638,14 +761,13 @@ export function AppStateProvider({ children }: PropsWithChildren) {
     input: CheckoutInput,
     customer: { email: string; name: string },
   ) {
-    if (!input.shippingAddress.trim() || cartItems.length === 0) {
-      return null
-    }
+    if (!input.shippingAddress.trim() || cartItems.length === 0) return null
 
     const orderId = buildOrderId()
     const placedAt = new Date().toISOString()
     const { total } = summarizeCart(cartItems)
     const normalizedAddress = input.shippingAddress.trim()
+
     const createdOrder: CustomerOrder = {
       eta: createEtaDate(),
       id: orderId,
@@ -682,11 +804,7 @@ export function AppStateProvider({ children }: PropsWithChildren) {
         const matchedCartItem = cartItems.find(
           (cartItem) => cartItem.product.id === item.id,
         )
-
-        if (!matchedCartItem) {
-          return item
-        }
-
+        if (!matchedCartItem) return item
         return {
           ...item,
           reservedStock: item.reservedStock + matchedCartItem.quantity,
@@ -700,17 +818,32 @@ export function AppStateProvider({ children }: PropsWithChildren) {
         const matchedCartItem = cartItems.find(
           (cartItem) => cartItem.product.id === product.id,
         )
-
-        if (!matchedCartItem) {
-          return product
-        }
-
+        if (!matchedCartItem) return product
         return {
           ...product,
           stock: Math.max(0, product.stock - matchedCartItem.quantity),
         }
       }),
     )
+
+    // Fire-and-forget API call
+    if (USE_API && isAuthenticated) {
+      const apiInput: ordersApi.PlaceOrderInput = {
+        items: cartItems.map((item) => ({
+          product_id: item.product.id,
+          quantity: item.quantity,
+          size: item.size,
+          price: item.product.price,
+        })),
+        total_amount: total,
+        payment_method: input.paymentMethod,
+        shipping_address: normalizedAddress,
+      }
+
+      ordersApi.placeOrder(apiInput).catch(() => {
+        console.warn('Failed to place order via API')
+      })
+    }
 
     setCartItems([])
 
@@ -722,9 +855,7 @@ export function AppStateProvider({ children }: PropsWithChildren) {
       (campaign) => campaign.id === campaignId,
     )
 
-    if (!currentCampaign) {
-      return null
-    }
+    if (!currentCampaign) return null
 
     const resolvedStatus: PricingCampaign['status'] =
       currentCampaign.status === 'scheduled'
@@ -732,10 +863,7 @@ export function AppStateProvider({ children }: PropsWithChildren) {
         : currentCampaign.status === 'live'
           ? 'ended'
           : 'scheduled'
-    const resolvedCampaign = {
-      ...currentCampaign,
-      status: resolvedStatus,
-    }
+    const resolvedCampaign = { ...currentCampaign, status: resolvedStatus }
     let updatedProduct: Product | null = null
 
     setPricingCampaigns((currentCampaigns) =>
@@ -744,10 +872,7 @@ export function AppStateProvider({ children }: PropsWithChildren) {
       ),
     )
 
-    const baselineProduct = getProductByName(
-      catalogProducts,
-      resolvedCampaign.productName,
-    )
+    const baselineProduct = getProductByName(catalogProducts, resolvedCampaign.productName)
     const currentProduct = getProductByName(products, resolvedCampaign.productName)
 
     if (baselineProduct && currentProduct) {
@@ -794,9 +919,7 @@ export function AppStateProvider({ children }: PropsWithChildren) {
       (campaign) => campaign.id === campaignId,
     )
 
-    if (!currentCampaign) {
-      return false
-    }
+    if (!currentCampaign) return false
 
     const updatedCampaign: PricingCampaign = {
       ...currentCampaign,
@@ -838,10 +961,7 @@ export function AppStateProvider({ children }: PropsWithChildren) {
 
   function generateReport(templateId: string, requestedBy: string) {
     const template = reportTemplates.find((item) => item.id === templateId)
-
-    if (!template) {
-      return null
-    }
+    if (!template) return null
 
     const exportRecord: ExportRecord = {
       format: template.format,
@@ -858,18 +978,13 @@ export function AppStateProvider({ children }: PropsWithChildren) {
       setRecentExports((currentExports) =>
         currentExports.map((item) =>
           item.id === exportRecord.id
-            ? {
-                ...item,
-                generatedAt: new Date().toISOString(),
-                status: 'ready',
-              }
+            ? { ...item, generatedAt: new Date().toISOString(), status: 'ready' }
             : item,
         ),
       )
     }, 1400)
 
     reportTimers.current.push(timerId)
-
     return exportRecord
   }
 
@@ -877,15 +992,21 @@ export function AppStateProvider({ children }: PropsWithChildren) {
     return recentExports.find((item) => item.id === exportId) ?? null
   }
 
+  // ── Derived state ─────────────────────────────────────────────────────────
+
   const favouriteProducts = products.filter((product) =>
     favouriteIds.includes(product.id),
   )
   const featuredProducts = products.slice(0, 3)
-  const recommendedProducts = products.filter((product) =>
-    initialRecommendedProducts.some((item) => item.id === product.id),
-  )
+  const derivedRecommendedProducts =
+    recommendedProducts.length > 0
+      ? recommendedProducts
+      : products.filter((product) =>
+          initialRecommendedProducts.some((item) => item.id === product.id),
+        )
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
-  const dashboardSummary = createDashboardSummary(adminOrders, inventoryItems)
+  const dashboardSummary =
+    dashboardFromApi ?? createDashboardSummary(adminOrders, inventoryItems)
 
   return (
     <AppStateContext.Provider
@@ -911,13 +1032,17 @@ export function AppStateProvider({ children }: PropsWithChildren) {
             .reduce((sum, item) => sum + item.quantity, 0),
         inventoryItems,
         isFavourite: (productId: string) => favouriteIds.includes(productId),
+        isLoading,
         managedUsers,
         placeOrder,
         priceHistory,
         pricingCampaigns,
         products,
         recentExports,
-        recommendedProducts,
+        recommendedProducts: derivedRecommendedProducts,
+        refreshProducts: fetchProducts,
+        refreshCart: fetchCart,
+        refreshOrders: fetchOrders,
         reportTemplates,
         toggleFavourite,
         togglePricingCampaign,

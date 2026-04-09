@@ -1,29 +1,57 @@
 const Product = require('../models/productModel');
+const { ok, fail } = require('../utils/responseHelper');
+
+// Helper: normalize product row from MySQL to match frontend Product type
+function normalizeProduct(row) {
+  return {
+    id: String(row.id),
+    name: row.name,
+    category: row.category,
+    price: Number(row.price),
+    originalPrice: row.originalPrice ? Number(row.originalPrice) : undefined,
+    image: row.image,
+    description: row.description,
+    stock: row.stock,
+    badge: row.badge || undefined,
+    targetGroup: row.targetGroup || undefined,
+  };
+}
 
 // ➕ Create
 const createProduct = (req, res) => {
-  console.log("BODY DATA:", req.body);
   const product = req.body;
 
   Product.createProduct(product, (err, result) => {
-  if (err) {
-    console.error("DB ERROR:", err);
-    return res.status(500).json({ error: err.message });
-  }
+    if (err) {
+      console.error("DB ERROR:", err);
+      return fail(res, 'Failed to create product.', 500);
+    }
 
-  res.status(201).json({
-    message: "Product created",
-    productId: result.insertId
+    return ok(res, { id: String(result.insertId) }, 'Product created.', 201);
   });
-});
 };
 
 // 📥 Get All
 const getProducts = (req, res) => {
-  Product.getAllProducts((err, results) => {
-    if (err) return res.status(500).json({ message: "DB Error" });
+  const { category, search } = req.query;
 
-    res.json(results);
+  if (search) {
+    return Product.searchProducts(search, (err, results) => {
+      if (err) return fail(res, 'Database error.', 500);
+      return ok(res, results.map(normalizeProduct));
+    });
+  }
+
+  if (category) {
+    return Product.getProductsByCategory(category, (err, results) => {
+      if (err) return fail(res, 'Database error.', 500);
+      return ok(res, results.map(normalizeProduct));
+    });
+  }
+
+  Product.getAllProducts((err, results) => {
+    if (err) return fail(res, 'Database error.', 500);
+    return ok(res, results.map(normalizeProduct));
   });
 };
 
@@ -32,13 +60,9 @@ const getProduct = (req, res) => {
   const { id } = req.params;
 
   Product.getProductById(id, (err, results) => {
-    if (err) return res.status(500).json({ message: "DB Error" });
-
-    if (results.length === 0) {
-      return res.status(404).json({ message: "Product not found" });
-    }
-
-    res.json(results[0]);
+    if (err) return fail(res, 'Database error.', 500);
+    if (results.length === 0) return fail(res, 'Product not found.', 404);
+    return ok(res, normalizeProduct(results[0]));
   });
 };
 
@@ -47,9 +71,8 @@ const updateProduct = (req, res) => {
   const { id } = req.params;
 
   Product.updateProduct(id, req.body, (err) => {
-    if (err) return res.status(500).json({ message: "DB Error" });
-
-    res.json({ message: "Product updated" });
+    if (err) return fail(res, 'Database error.', 500);
+    return ok(res, { id: String(id) }, 'Product updated.');
   });
 };
 
@@ -58,9 +81,8 @@ const deleteProduct = (req, res) => {
   const { id } = req.params;
 
   Product.deleteProduct(id, (err) => {
-    if (err) return res.status(500).json({ message: "DB Error" });
-
-    res.json({ message: "Product deleted" });
+    if (err) return fail(res, 'Database error.', 500);
+    return ok(res, { id: String(id) }, 'Product deleted.');
   });
 };
 
@@ -69,5 +91,6 @@ module.exports = {
   getProducts,
   getProduct,
   updateProduct,
-  deleteProduct
+  deleteProduct,
+  normalizeProduct,
 };

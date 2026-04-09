@@ -1,4 +1,6 @@
 const db = require('../config/db');
+const { ok, fail } = require('../utils/responseHelper');
+const { normalizeProduct } = require('./productController');
 
 const getSmartRecommendations = (req, res) => {
   const userId = req.params.userId;
@@ -17,11 +19,11 @@ const getSmartRecommendations = (req, res) => {
 
   db.query(cartQuery, [userId], (err, cartResults) => {
     if (err) {
-      return res.status(500).json({ message: 'DB Error' });
+      return fail(res, 'Database error.', 500);
     }
 
     if (cartResults.length > 0) {
-      return res.json(cartResults);
+      return ok(res, cartResults.map(normalizeProduct));
     }
 
     // fallback to activity
@@ -37,10 +39,10 @@ const getSmartRecommendations = (req, res) => {
 
     db.query(activityQuery, [userId], (err, result) => {
       if (err) {
-        return res.status(500).json({ message: 'DB Error' });
+        return fail(res, 'Database error.', 500);
       }
 
-      if (result.length === 0) return res.json([]);
+      if (result.length === 0) return ok(res, []);
 
       const category = result[0].category;
 
@@ -49,10 +51,10 @@ const getSmartRecommendations = (req, res) => {
         [category],
         (err, products) => {
           if (err) {
-            return res.status(500).json({ message: 'DB Error' });
+            return fail(res, 'Database error.', 500);
           }
 
-          res.json(products);
+          return ok(res, products.map(normalizeProduct));
         }
       );
     });

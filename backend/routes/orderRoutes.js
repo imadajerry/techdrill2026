@@ -1,17 +1,15 @@
 const express = require('express');
 const orderRoutes = express.Router();
 const orderController = require('../controllers/orderController');
+const verifyToken = require('../middleware/authMiddleware');
+const requireRole = require('../middleware/roleMiddleware');
 
-// ➕ Place order
-orderRoutes.post('/orders', orderController.placeOrder);
+// Customer routes
+orderRoutes.post('/orders', verifyToken, orderController.placeOrder);
+orderRoutes.get('/orders/mine', verifyToken, orderController.getUserOrders);
 
-// 📥 Get user orders
-orderRoutes.get('/orders/user/:userId', orderController.getUserOrders);
-
-// 📥 Admin: all orders
-orderRoutes.get('/orders', orderController.getAllOrders);
-
-// ✏️ Update status
-orderRoutes.put('/orders/:id/status', orderController.updateStatus);
+// Admin routes
+orderRoutes.get('/orders', verifyToken, requireRole('admin', 'superadmin'), orderController.getAllOrders);
+orderRoutes.put('/orders/:id/status', verifyToken, requireRole('admin', 'superadmin'), orderController.updateStatus);
 
 module.exports = orderRoutes;

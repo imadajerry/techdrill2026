@@ -1,6 +1,7 @@
 const User = require('../models/userModel');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const { ok, fail } = require('../utils/responseHelper');
 
 const pendingRegistrations = new Map();
 
@@ -13,24 +14,12 @@ function createTokenPayload(user) {
   };
 }
 
-function createAuthResponse(user, token) {
-  return {
-    success: true,
-    data: {
-      token,
-      role: user.role,
-      user,
-    },
-    message: 'Login successful.',
-  };
-}
-
 function normalizeUserRecord(user) {
   return {
     id: String(user.id),
     name: user.username,
     email: user.email,
-    role: 'customer',
+    role: user.role || 'customer',
   };
 }
 
@@ -45,26 +34,17 @@ const registerUser = (req, res) => {
   const normalizedEmail = (email || '').trim().toLowerCase();
 
   if (!resolvedName || !normalizedEmail || !password) {
-    return res.status(400).json({
-      success: false,
-      message: 'Name, email, and password are required.',
-    });
+    return fail(res, 'Name, email, and password are required.');
   }
 
   User.getUserByEmail(normalizedEmail, async (err, results) => {
     if (err) {
       console.error(err);
-      return res.status(500).json({
-        success: false,
-        message: 'Database error.',
-      });
+      return fail(res, 'Database error.', 500);
     }
 
     if (results.length > 0) {
-      return res.status(409).json({
-        success: false,
-        message: 'An account with this email already exists.',
-      });
+      return fail(res, 'An account with this email already exists.', 409);
     }
 
     pendingRegistrations.set(normalizedEmail, {
@@ -74,41 +54,26 @@ const registerUser = (req, res) => {
       otp: createOtp(),
     });
 
-    return res.status(201).json({
-      success: true,
-      data: {
-        email: normalizedEmail,
-      },
-      message: 'OTP sent. Use 123456 in the current backend implementation.',
-    });
+    return ok(res, { email: normalizedEmail }, 'OTP sent. Use 123456 in the current backend implementation.', 201);
   });
 };
 
-// 🔐 LOGIN
+// ✅ VERIFY OTP
 const verifyOtp = (req, res) => {
   const normalizedEmail = (req.body.email || '').trim().toLowerCase();
   const otp = (req.body.otp || '').trim();
   const pendingRegistration = pendingRegistrations.get(normalizedEmail);
 
   if (!normalizedEmail || !otp) {
-    return res.status(400).json({
-      success: false,
-      message: 'Email and OTP are required.',
-    });
+    return fail(res, 'Email and OTP are required.');
   }
 
   if (!pendingRegistration) {
-    return res.status(404).json({
-      success: false,
-      message: 'Registration session not found. Start again.',
-    });
+    return fail(res, 'Registration session not found. Start again.', 404);
   }
 
   if (pendingRegistration.otp !== otp) {
-    return res.status(400).json({
-      success: false,
-      message: 'Invalid OTP.',
-    });
+    return fail(res, 'Invalid OTP.');
   }
 
   User.createUser(
@@ -120,52 +85,44 @@ const verifyOtp = (req, res) => {
     (err) => {
       if (err) {
         console.error(err);
-        return res.status(500).json({
-          success: false,
-          message: 'Database error.',
-        });
+        return fail(res, 'Database error.', 500);
       }
 
       pendingRegistrations.delete(normalizedEmail);
-
-      return res.status(201).json({
-        success: true,
-        data: {
-          email: normalizedEmail,
-        },
-        message: 'Account verified. You can log in now.',
-      });
+      return ok(res, { email: normalizedEmail }, 'Account verified. You can log in now.', 201);
     },
   );
 };
 
+// 🔐 LOGIN
 const loginUser = (req, res) => {
   const normalizedEmail = (req.body.email || '').trim().toLowerCase();
   const password = req.body.password || '';
 
   User.getUserByEmail(normalizedEmail, async (err, results) => {
     if (err) {
-      return res.status(500).json({
-        success: false,
-        message: 'Database error.',
-      });
+      return fail(res, 'Database error.', 500);
     }
 
     if (results.length === 0) {
-      return res.status(401).json({
-        success: false,
-        message: 'User not found.',
-      });
+      return fail(res, 'User not found.', 401);
     }
 
     const user = results[0];
+
+    // Check if user is blocked
+    if (user.status === 'blocked') {
+      return fail(res, 'Your account has been blocked. Contact support.', 403);
+    }
+
+    if (user.status === 'pending') {
+      return fail(res, 'Your account is pending approval.', 403);
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid password.',
-      });
+      return fail(res, 'Invalid password.', 401);
     }
 
     const normalizedUser = normalizeUserRecord(user);
@@ -175,17 +132,17 @@ const loginUser = (req, res) => {
       { expiresIn: '1d' },
     );
 
-    return res.status(200).json(createAuthResponse(normalizedUser, token));
+    return ok(res, {
+      token,
+      role: normalizedUser.role,
+      user: normalizedUser,
+    }, 'Login successful.');
   });
 };
 
 // 🚪 LOGOUT
 const logoutUser = (req, res) => {
-  res.status(200).json({
-    success: true,
-    data: null,
-    message: 'Logout successful.',
-  });
+  return ok(res, null, 'Logout successful.');
 };
 
 module.exports = {

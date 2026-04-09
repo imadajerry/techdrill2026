@@ -1,25 +1,35 @@
 const express = require('express');
-const app = express();
 const cors = require('cors');
-const bodyParser = require('body-parser');
-app.use(express.json());
-app.use(cors());
 
+const app = express();
+
+// Middleware
+app.use(express.json());
+app.use(cors({
+  origin: ['http://localhost:5173', 'http://localhost:4173'],
+  credentials: true,
+}));
+
+// Routes
 const authRoutes = require('./routes/authRoutes');
-app.use('/api',authRoutes);
 app.use('/api/auth', authRoutes);
-  
+
 const productRoutes = require('./routes/productRoutes');
-app.use('/api',productRoutes);
+app.use('/api', productRoutes);
 
 const cartRoutes = require('./routes/cartRoutes');
-app.use('/api',cartRoutes);
+app.use('/api', cartRoutes);
 
 const orderRoutes = require('./routes/orderRoutes');
-app.use('/api',orderRoutes);
+app.use('/api', orderRoutes);
+
+const adminRoutes = require('./routes/adminRoutes');
+app.use('/api', adminRoutes);
+
+const favouriteRoutes = require('./routes/favouriteRoutes');
+app.use('/api', favouriteRoutes);
 
 const recomRoutes = require('./routes/smartRecommendation');
-app.use('/api',recomRoutes);
+app.use('/api', recomRoutes);
 
-app.use(bodyParser.json());
 module.exports = app;
