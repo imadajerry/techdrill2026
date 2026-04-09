@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom'
-import PageIntro from '../../components/ui/PageIntro'
 import SectionCard from '../../components/ui/SectionCard'
 import StatCard from '../../components/ui/StatCard'
 import StatusBadge from '../../components/ui/StatusBadge'
@@ -30,49 +29,8 @@ export default function CartPage() {
 
   return (
     <div className={styles.page}>
-      <PageIntro
-        actions={
-          <>
-            <Link className={styles.primaryAction} to="/products">
-              Continue shopping
-            </Link>
-            <Link className={styles.secondaryAction} to="/checkout">
-              Proceed to checkout
-            </Link>
-          </>
-        }
-        description="Cart state now feeds a working checkout flow with quantity controls, live totals, and a direct path to order placement."
-        eyebrow="Customer cart"
-        title="Review the bag before checkout."
-      />
-
-      <div className={styles.statsGrid}>
-        <StatCard
-          helper="The cart summary already follows the same price envelope planned for checkout."
-          label="Items in bag"
-          value={`${cartItems.length}`}
-        />
-        <StatCard
-          helper={
-            shipping === 0
-              ? 'Your order already qualifies for free express shipping.'
-              : `${formatCurrency(amountForFreeShipping)} away from free shipping.`
-          }
-          label="Shipping"
-          tone="accent"
-          value={shipping === 0 ? 'Free' : formatCurrency(shipping)}
-        />
-        <StatCard
-          helper="This is derived from originalPrice versus current price."
-          label="Savings"
-          tone="dark"
-          value={formatCurrency(savings)}
-        />
-      </div>
-
       <div className={styles.cartLayout}>
         <SectionCard
-          description="Quantity controls are local for now, but the layout is ready for real cart API mutations."
           title="Bag items"
         >
           {cartItems.length === 0 ? (
@@ -147,20 +105,24 @@ export default function CartPage() {
               ))}
             </div>
           )}
+          {cartItems.length > 0 ? (
+            <Link className={styles.checkoutInlineButton} to="/checkout">
+              Checkout
+            </Link>
+          ) : null}
         </SectionCard>
 
         <div className={styles.stack}>
-          <SectionCard
-            action={
-              cartItems.length > 0 ? (
-                <Link className={styles.inlineLinkButton} to="/checkout">
-                  Checkout
-                </Link>
-              ) : null
-            }
-            description="Shipping totals now feed directly into the checkout and order placement flow."
-            title="Order summary"
-          >
+          <StatCard
+          helper={
+            shipping === 0
+              ? 'Your order already qualifies for free express shipping.'
+              : `${formatCurrency(amountForFreeShipping)} away from free shipping.`
+          }
+          label="Shipping"
+          value={shipping === 0 ? 'Free' : formatCurrency(shipping)}
+        />
+          <SectionCard title="Order summary">
             <div className={styles.summaryList}>
               <div className={styles.summaryRow}>
                 <span>Subtotal</span>
@@ -182,7 +144,6 @@ export default function CartPage() {
           </SectionCard>
 
           <SectionCard
-            description="These recommendations reuse the shared catalog shape, so they can later be replaced by AI- or analytics-driven suggestions."
             title="Add one more pair"
           >
             <div className={styles.recommendationList}>

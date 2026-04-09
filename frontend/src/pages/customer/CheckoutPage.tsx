@@ -5,18 +5,14 @@ import SectionCard from '../../components/ui/SectionCard'
 import StatusBadge from '../../components/ui/StatusBadge'
 import { useAppState } from '../../context/AppStateContext'
 import { useAuth } from '../../context/AuthContext'
-import type { PaymentMethod } from '../../types/order'
 import { formatCurrency } from '../../utils/formatCurrency'
 import styles from './CustomerPages.module.css'
-
-const paymentOptions: PaymentMethod[] = ['Razorpay', 'UPI', 'Card', 'COD']
 
 export default function CheckoutPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { cartItems, placeOrder } = useAppState()
   const [shippingAddress, setShippingAddress] = useState('')
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('Razorpay')
   const [errorMessage, setErrorMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -44,7 +40,7 @@ export default function CheckoutPage() {
 
     const createdOrder = placeOrder(
       {
-        paymentMethod,
+        paymentMethod: 'Razorpay',
         shippingAddress,
       },
       {
@@ -81,7 +77,7 @@ export default function CheckoutPage() {
             </Link>
           </>
         }
-        description="Confirm delivery details, choose a payment method, and convert the active bag into a live order."
+        description="Confirm delivery details and convert the active bag into a live order using Razorpay."
         eyebrow="Checkout"
         title="Place the order."
       />
@@ -104,32 +100,12 @@ export default function CheckoutPage() {
             </label>
 
             <div className={styles.checkoutField}>
-              <span className={styles.checkoutLabel}>Payment method</span>
-              <div className={styles.paymentGrid}>
-                {paymentOptions.map((option) => (
-                  <button
-                    className={`${styles.paymentOption} ${
-                      paymentMethod === option ? styles.paymentOptionActive : ''
-                    }`.trim()}
-                    key={option}
-                    onClick={() => setPaymentMethod(option)}
-                    type="button"
-                  >
-                    {option}
-                  </button>
-                ))}
-              </div>
+              <span className={styles.checkoutLabel}>Payment method: Razorpay</span>
             </div>
 
-            {paymentMethod === 'COD' ? (
-              <StatusBadge tone="warning">
-                COD orders enter the admin queue with pending payment.
-              </StatusBadge>
-            ) : (
-              <StatusBadge tone="success">
-                Online payment orders are marked paid as soon as they are placed.
-              </StatusBadge>
-            )}
+            <StatusBadge tone="success">
+              Orders placed from checkout are marked paid through Razorpay.
+            </StatusBadge>
 
             {errorMessage ? (
               <div className={styles.checkoutError}>{errorMessage}</div>
@@ -140,7 +116,7 @@ export default function CheckoutPage() {
               disabled={isSubmitting}
               type="submit"
             >
-              {isSubmitting ? 'Placing order...' : 'Place order'}
+              {isSubmitting ? 'Placing order...' : 'Pay with Razorpay'}
             </button>
           </form>
         </SectionCard>

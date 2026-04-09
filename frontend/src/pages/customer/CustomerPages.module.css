@@ -208,15 +208,18 @@
   padding: 0;
 }
 
-.inlineLinkButton {
+.checkoutInlineButton {
   align-items: center;
   background: var(--color-text-strong);
   border-radius: 999px;
   color: white;
   display: inline-flex;
-  min-height: 40px;
-  padding: 0 14px;
+  justify-content: center;
+  margin-top: 18px;
+  min-height: 48px;
+  padding: 0 18px;
   text-decoration: none;
+  width: 100%;
 }
 
 .summaryList {
@@ -284,6 +287,17 @@
   display: grid;
   gap: 10px;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+}
+
+.paymentFixed {
+  align-items: center;
+  background: var(--color-text-strong);
+  border-radius: 18px;
+  color: white;
+  display: inline-flex;
+  justify-content: center;
+  min-height: 46px;
+  padding: 0 14px;
 }
 
 .paymentOption {

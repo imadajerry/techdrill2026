@@ -669,7 +669,7 @@ export function AppStateProvider({ children }: PropsWithChildren) {
         customerName: customer.name,
         id: orderId,
         itemCount: cartItems.reduce((sum, item) => sum + item.quantity, 0),
-        paymentStatus: input.paymentMethod === 'COD' ? 'pending' : 'paid',
+        paymentStatus: 'paid',
         placedAt,
         status: 'placed',
         total,
