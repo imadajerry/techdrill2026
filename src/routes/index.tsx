@@ -3,6 +3,7 @@ import FeaturePlaceholder from '../components/feedback/FeaturePlaceholder'
 import AdminLayout from '../components/layout/AdminLayout'
 import AuthLayout from '../components/layout/AuthLayout'
 import CustomerLayout from '../components/layout/CustomerLayout'
+import { AppStateProvider } from '../context/AppStateContext'
 import { AuthProvider } from '../context/AuthContext'
 import DashboardPage from '../pages/admin/DashboardPage'
 import AdminOrdersPage from '../pages/admin/OrdersPage'
@@ -76,7 +77,9 @@ const router = createBrowserRouter([
 export default function AppRouter() {
   return (
     <AuthProvider>
-      <RouterProvider router={router} />
+      <AppStateProvider>
+        <RouterProvider router={router} />
+      </AppStateProvider>
     </AuthProvider>
   )
 }
