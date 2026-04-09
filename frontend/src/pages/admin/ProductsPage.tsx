@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import PageIntro from '../../components/ui/PageIntro'
 import SectionCard from '../../components/ui/SectionCard'
 import StatCard from '../../components/ui/StatCard'
@@ -24,7 +25,10 @@ export default function AdminProductsPage() {
     adjustInventoryStock,
     inventoryItems,
     pricingCampaigns,
+    updateInventoryBasePrice,
   } = useAppState()
+  const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({})
+  const [feedbackMessage, setFeedbackMessage] = useState('')
   const lowStockCount = inventoryItems.filter(
     (item) => item.stock <= item.reorderLevel,
   ).length
@@ -70,6 +74,10 @@ export default function AdminProductsPage() {
         />
       </div>
 
+      {feedbackMessage ? (
+        <StatusBadge tone="accent">{feedbackMessage}</StatusBadge>
+      ) : null}
+
       <SectionCard
         description="The next step is connecting create, edit, and stock-adjustment mutations to the backend."
         title="Inventory watch"
@@ -77,6 +85,12 @@ export default function AdminProductsPage() {
         <div className={styles.inventoryGrid}>
           {inventoryItems.map((item) => {
             const stockRatio = Math.min(100, (item.stock / (item.reorderLevel * 2)) * 100)
+            const liveCampaign = pricingCampaigns.find(
+              (campaign) =>
+                campaign.productName === item.name && campaign.status === 'live',
+            )
+            const basePriceValue = priceDrafts[item.id] ?? `${item.price}`
+            const currentPrice = liveCampaign?.salePrice ?? item.price
 
             return (
               <article className={styles.inventoryCard} key={item.id}>
@@ -96,7 +110,7 @@ export default function AdminProductsPage() {
                   <div className={styles.metricBlock}>
                     <span className={styles.metricLabel}>Current price</span>
                     <span className={styles.metricValue}>
-                      {formatCurrency(item.price)}
+                      {formatCurrency(currentPrice)}
                     </span>
                   </div>
                   <div className={styles.metricBlock}>
@@ -121,6 +135,53 @@ export default function AdminProductsPage() {
                     style={{ width: `${Math.max(stockRatio, 8)}%` }}
                   />
                 </div>
+
+                <div className={styles.editorGrid}>
+                  <label className={styles.editorField}>
+                    <span className={styles.metricLabel}>Base price</span>
+                    <input
+                      className={styles.numberInput}
+                      min="1"
+                      onChange={(event) =>
+                        setPriceDrafts((currentDrafts) => ({
+                          ...currentDrafts,
+                          [item.id]: event.target.value,
+                        }))
+                      }
+                      step="1"
+                      type="number"
+                      value={basePriceValue}
+                    />
+                  </label>
+                  <button
+                    className={styles.actionButton}
+                    onClick={() => {
+                      const parsedPrice = Number(basePriceValue)
+
+                      if (!updateInventoryBasePrice(item.id, parsedPrice)) {
+                        setFeedbackMessage('Enter a valid positive base price.')
+                        return
+                      }
+
+                      setPriceDrafts((currentDrafts) => ({
+                        ...currentDrafts,
+                        [item.id]: `${parsedPrice}`,
+                      }))
+                      setFeedbackMessage(`${item.name} base price updated.`)
+                    }}
+                    type="button"
+                  >
+                    Save price
+                  </button>
+                </div>
+
+                {liveCampaign ? (
+                  <p className={styles.inlineHint}>
+                    Live sale running at {formatCurrency(liveCampaign.salePrice)}.
+                    Updating the base price also updates the original strike-through
+                    price shown in the storefront.
+                  </p>
+                ) : null}
 
                 <div className={styles.inlineActions}>
                   <button

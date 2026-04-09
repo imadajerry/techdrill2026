@@ -46,6 +46,11 @@ type AddToCartResult =
   | 'max-stock'
   | 'out-of-stock'
 
+type CampaignPriceInput = {
+  basePrice: number
+  salePrice: number
+}
+
 type AppStateContextValue = {
   addToCart: (productId: string, size: string) => AddToCartResult
   adjustInventoryReserved: (itemId: string, delta: number) => void
@@ -75,7 +80,9 @@ type AppStateContextValue = {
   toggleFavourite: (productId: string) => boolean
   togglePricingCampaign: (campaignId: string) => PricingCampaign['status'] | null
   toggleUserStatus: (userId: string) => ManagedUser['status'] | null
+  updateCampaignPrices: (campaignId: string, input: CampaignPriceInput) => boolean
   updateCartItemQuantity: (itemId: string, delta: number) => void
+  updateInventoryBasePrice: (itemId: string, nextPrice: number) => boolean
   removeCartItem: (itemId: string) => void
 }
 
@@ -168,6 +175,27 @@ function getNextUserStatus(
 
 function cloneProducts(products: Product[]) {
   return products.map(cloneProduct)
+}
+
+function buildStorefrontProduct(
+  currentProduct: Product,
+  basePrice: number,
+  salePrice: number,
+  status: PricingCampaign['status'],
+): Product {
+  if (status === 'live') {
+    return {
+      ...currentProduct,
+      originalPrice: basePrice,
+      price: salePrice,
+    }
+  }
+
+  return {
+    ...currentProduct,
+    originalPrice: undefined,
+    price: basePrice,
+  }
 }
 
 function createDashboardSummary(
@@ -288,6 +316,32 @@ export function AppStateProvider({ children }: PropsWithChildren) {
             : item,
         ),
       })),
+    )
+  }
+
+  function appendPriceHistory(productName: string, amount: number, note: string) {
+    setPriceHistory((currentHistory) => [
+      {
+        amount,
+        effectiveAt: new Date().toISOString(),
+        id: `price-${Date.now()}`,
+        note,
+        productName,
+      },
+      ...currentHistory,
+    ])
+  }
+
+  function syncInventoryBasePrice(productName: string, basePrice: number) {
+    setInventoryItems((currentItems) =>
+      currentItems.map((item) =>
+        item.name === productName
+          ? {
+              ...item,
+              price: basePrice,
+            }
+          : item,
+      ),
     )
   }
 
@@ -497,6 +551,61 @@ export function AppStateProvider({ children }: PropsWithChildren) {
     )
   }
 
+  function updateInventoryBasePrice(itemId: string, nextPrice: number) {
+    if (!Number.isFinite(nextPrice) || nextPrice <= 0) {
+      return false
+    }
+
+    const currentItem = inventoryItems.find((item) => item.id === itemId)
+
+    if (!currentItem) {
+      return false
+    }
+
+    const activeCampaign = pricingCampaigns.find(
+      (campaign) =>
+        campaign.productName === currentItem.name && campaign.status === 'live',
+    )
+    const currentProduct = getProductById(products, currentItem.id)
+
+    setInventoryItems((currentItems) =>
+      currentItems.map((item) =>
+        item.id === itemId
+          ? {
+              ...item,
+              price: nextPrice,
+            }
+          : item,
+      ),
+    )
+
+    setPricingCampaigns((currentCampaigns) =>
+      currentCampaigns.map((campaign) =>
+        campaign.productName === currentItem.name
+          ? {
+              ...campaign,
+              basePrice: nextPrice,
+            }
+          : campaign,
+      ),
+    )
+
+    if (currentProduct) {
+      const updatedProduct = buildStorefrontProduct(
+        currentProduct,
+        nextPrice,
+        activeCampaign?.salePrice ?? nextPrice,
+        activeCampaign?.status ?? 'ended',
+      )
+
+      syncProductReferences(updatedProduct)
+    }
+
+    appendPriceHistory(currentItem.name, nextPrice, 'Base price updated from inventory.')
+
+    return true
+  }
+
   function togglePricingCampaign(campaignId: string) {
     const currentCampaign = pricingCampaigns.find(
       (campaign) => campaign.id === campaignId,
@@ -531,66 +640,89 @@ export function AppStateProvider({ children }: PropsWithChildren) {
     const currentProduct = getProductByName(products, resolvedCampaign.productName)
 
     if (baselineProduct && currentProduct) {
-      if (resolvedStatus === 'live') {
-        updatedProduct = {
-          ...currentProduct,
-          originalPrice: resolvedCampaign.basePrice,
-          price: resolvedCampaign.salePrice,
-        }
-      }
-
-      if (resolvedStatus === 'ended') {
-        updatedProduct = {
-          ...currentProduct,
-          originalPrice: baselineProduct.originalPrice,
-          price: resolvedCampaign.basePrice,
-        }
-      }
-
-      if (resolvedStatus === 'scheduled') {
-        updatedProduct = {
-          ...currentProduct,
-          originalPrice: baselineProduct.originalPrice,
-          price: baselineProduct.price,
-        }
-      }
+      updatedProduct = buildStorefrontProduct(
+        currentProduct,
+        resolvedCampaign.basePrice,
+        resolvedCampaign.salePrice,
+        resolvedStatus,
+      )
     }
 
     if (updatedProduct) {
       syncProductReferences(updatedProduct)
-      setInventoryItems((currentItems) =>
-        currentItems.map((item) =>
-          item.name === updatedProduct!.name
-            ? {
-                ...item,
-                originalPrice: updatedProduct!.originalPrice,
-                price: updatedProduct!.price,
-              }
-            : item,
+      syncInventoryBasePrice(updatedProduct.name, resolvedCampaign.basePrice)
+    }
+
+    appendPriceHistory(
+      resolvedCampaign.productName,
+      resolvedStatus === 'live'
+        ? resolvedCampaign.salePrice
+        : resolvedCampaign.basePrice,
+      resolvedStatus === 'live'
+        ? `${resolvedCampaign.name} launched.`
+        : resolvedStatus === 'ended'
+          ? `${resolvedCampaign.name} ended.`
+          : `${resolvedCampaign.name} rescheduled.`,
+    )
+
+    return resolvedStatus
+  }
+
+  function updateCampaignPrices(campaignId: string, input: CampaignPriceInput) {
+    if (
+      !Number.isFinite(input.basePrice) ||
+      !Number.isFinite(input.salePrice) ||
+      input.basePrice <= 0 ||
+      input.salePrice <= 0 ||
+      input.salePrice > input.basePrice
+    ) {
+      return false
+    }
+
+    const currentCampaign = pricingCampaigns.find(
+      (campaign) => campaign.id === campaignId,
+    )
+
+    if (!currentCampaign) {
+      return false
+    }
+
+    const updatedCampaign: PricingCampaign = {
+      ...currentCampaign,
+      basePrice: input.basePrice,
+      salePrice: input.salePrice,
+    }
+
+    setPricingCampaigns((currentCampaigns) =>
+      currentCampaigns.map((campaign) =>
+        campaign.id === campaignId ? updatedCampaign : campaign,
+      ),
+    )
+
+    syncInventoryBasePrice(updatedCampaign.productName, updatedCampaign.basePrice)
+
+    const currentProduct = getProductByName(products, updatedCampaign.productName)
+
+    if (currentProduct) {
+      syncProductReferences(
+        buildStorefrontProduct(
+          currentProduct,
+          updatedCampaign.basePrice,
+          updatedCampaign.salePrice,
+          updatedCampaign.status,
         ),
       )
     }
 
-    setPriceHistory((currentHistory) => [
-      {
-        amount:
-          resolvedStatus === 'live'
-            ? resolvedCampaign.salePrice
-            : resolvedCampaign.basePrice,
-        effectiveAt: new Date().toISOString(),
-        id: `price-${Date.now()}`,
-        note:
-          resolvedStatus === 'live'
-            ? `${resolvedCampaign.name} launched.`
-            : resolvedStatus === 'ended'
-              ? `${resolvedCampaign.name} ended.`
-              : `${resolvedCampaign.name} rescheduled.`,
-        productName: resolvedCampaign.productName,
-      },
-      ...currentHistory,
-    ])
+    appendPriceHistory(
+      updatedCampaign.productName,
+      updatedCampaign.status === 'live'
+        ? updatedCampaign.salePrice
+        : updatedCampaign.basePrice,
+      `${updatedCampaign.name} pricing updated.`,
+    )
 
-    return resolvedStatus
+    return true
   }
 
   function generateReport(templateId: string, requestedBy: string) {
@@ -678,7 +810,9 @@ export function AppStateProvider({ children }: PropsWithChildren) {
         toggleFavourite,
         togglePricingCampaign,
         toggleUserStatus,
+        updateCampaignPrices,
         updateCartItemQuantity,
+        updateInventoryBasePrice,
         removeCartItem,
       }}
     >
