@@ -5,7 +5,7 @@ import PageIntro from '../../components/ui/PageIntro'
 import SectionCard from '../../components/ui/SectionCard'
 import StatCard from '../../components/ui/StatCard'
 import StatusBadge from '../../components/ui/StatusBadge'
-import { customerOrders } from '../../mocks/orders'
+import { useAppState } from '../../context/AppStateContext'
 import type { OrderStatus } from '../../types/order'
 import { formatCurrency } from '../../utils/formatCurrency'
 import { formatDate } from '../../utils/formatDate'
@@ -38,6 +38,7 @@ function getOrderTone(status: OrderStatus) {
 }
 
 export default function OrdersPage() {
+  const { customerOrders } = useAppState()
   const [selectedStatus, setSelectedStatus] = useState<'all' | OrderStatus>('all')
 
   const filteredOrders =
