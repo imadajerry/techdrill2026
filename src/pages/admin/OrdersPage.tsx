@@ -3,7 +3,7 @@ import PageIntro from '../../components/ui/PageIntro'
 import SectionCard from '../../components/ui/SectionCard'
 import StatCard from '../../components/ui/StatCard'
 import StatusBadge from '../../components/ui/StatusBadge'
-import { adminOrders } from '../../mocks/adminOperations'
+import { useAppState } from '../../context/AppStateContext'
 import type { OrderStatus } from '../../types/order'
 import { formatCurrency } from '../../utils/formatCurrency'
 import { formatDate } from '../../utils/formatDate'
@@ -52,10 +52,11 @@ function getNextAction(status: OrderStatus) {
     return 'Mark delivered'
   }
 
-  return 'View details'
+  return null
 }
 
 export default function AdminOrdersPage() {
+  const { adminOrders, advanceAdminOrder } = useAppState()
   const [selectedStatus, setSelectedStatus] = useState<'all' | OrderStatus>('all')
 
   const filteredOrders =
@@ -148,9 +149,17 @@ export default function AdminOrdersPage() {
                 <StatusBadge tone={order.paymentStatus === 'paid' ? 'success' : 'warning'}>
                   {order.paymentStatus}
                 </StatusBadge>
-                <button className={styles.actionButton} type="button">
-                  {getNextAction(order.status)}
-                </button>
+                {getNextAction(order.status) ? (
+                  <button
+                    className={styles.actionButton}
+                    onClick={() => advanceAdminOrder(order.id)}
+                    type="button"
+                  >
+                    {getNextAction(order.status)}
+                  </button>
+                ) : (
+                  <StatusBadge tone="neutral">No pending action</StatusBadge>
+                )}
               </div>
             </article>
           ))}
