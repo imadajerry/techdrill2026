@@ -26,7 +26,7 @@ const RegisterForm = () => {
 
     try {
       const res = await axios.post(
-        "http://localhost:8586/api/auth/register",
+        "http://localhost:8586/api/register",
         formData
       );
 
