@@ -1,0 +1,28 @@
+.card {
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-soft);
+  padding: 24px;
+}
+
+.header {
+  align-items: end;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.title {
+  color: var(--color-text-strong);
+  font-size: 1.12rem;
+  margin: 0;
+}
+
+.description {
+  color: var(--color-text-muted);
+  line-height: 1.6;
+  margin: 8px 0 0;
+  max-width: 55ch;
+}
