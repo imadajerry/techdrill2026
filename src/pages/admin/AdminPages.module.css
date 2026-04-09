@@ -1,0 +1,237 @@
+.page {
+  display: grid;
+  gap: 24px;
+}
+
+.statsGrid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.asideBlock {
+  background: rgba(29, 24, 20, 0.92);
+  border-radius: 28px;
+  color: white;
+  display: grid;
+  gap: 12px;
+  padding: 22px;
+}
+
+.asideLabel {
+  font-size: 0.82rem;
+  letter-spacing: 0.1em;
+  margin: 0;
+  opacity: 0.72;
+  text-transform: uppercase;
+}
+
+.asideValue {
+  font-family: var(--font-display);
+  font-size: 2.4rem;
+  margin: 0;
+}
+
+.asideCopy {
+  line-height: 1.6;
+  margin: 0;
+  opacity: 0.78;
+}
+
+.filterRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.filterButton {
+  background: #f2ece2;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--color-text-strong);
+  cursor: pointer;
+  font: inherit;
+  padding: 10px 14px;
+}
+
+.filterActive {
+  background: var(--color-text-strong);
+  color: white;
+}
+
+.list {
+  display: grid;
+  gap: 14px;
+}
+
+.row {
+  align-items: center;
+  background: #fbf7f1;
+  border-radius: 22px;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 18px;
+}
+
+.rowTitle {
+  color: var(--color-text-strong);
+  font-size: 1.04rem;
+  margin: 0;
+}
+
+.rowMeta {
+  color: var(--color-text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  line-height: 1.6;
+  margin: 8px 0 0;
+}
+
+.rowActions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.actionButton,
+.secondaryButton {
+  border-radius: 999px;
+  cursor: pointer;
+  font: inherit;
+  min-height: 40px;
+  padding: 0 14px;
+}
+
+.actionButton {
+  background: var(--color-text-strong);
+  border: 0;
+  color: white;
+}
+
+.secondaryButton {
+  background: white;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-strong);
+}
+
+.inventoryGrid,
+.reportGrid,
+.pricingGrid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.inventoryCard,
+.reportCard,
+.pricingCard {
+  background: #fbf7f1;
+  border-radius: 24px;
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+}
+
+.cardHeader {
+  align-items: start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.cardTitle {
+  color: var(--color-text-strong);
+  font-size: 1.08rem;
+  margin: 0;
+}
+
+.cardCopy {
+  color: var(--color-text-muted);
+  line-height: 1.6;
+  margin: 8px 0 0;
+}
+
+.metricGrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.metricBlock {
+  background: white;
+  border-radius: 18px;
+  padding: 14px;
+}
+
+.metricLabel {
+  color: var(--color-text-muted);
+  display: block;
+  font-size: 0.8rem;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.metricValue {
+  color: var(--color-text-strong);
+  font-weight: 700;
+}
+
+.progressTrack {
+  background: rgba(32, 25, 19, 0.08);
+  border-radius: 999px;
+  height: 10px;
+  overflow: hidden;
+}
+
+.progressFill {
+  background: linear-gradient(90deg, #c8572b, #de8a57);
+  height: 100%;
+}
+
+.splitGrid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.historyList {
+  display: grid;
+  gap: 12px;
+}
+
+.historyRow {
+  align-items: center;
+  background: #fbf7f1;
+  border-radius: 18px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 16px;
+}
+
+.historyTitle {
+  color: var(--color-text-strong);
+  margin: 0;
+}
+
+.historyCopy {
+  color: var(--color-text-muted);
+  line-height: 1.6;
+  margin: 6px 0 0;
+}
+
+@media (max-width: 720px) {
+  .row,
+  .historyRow {
+    grid-template-columns: 1fr;
+  }
+
+  .rowActions {
+    justify-content: start;
+  }
+}
