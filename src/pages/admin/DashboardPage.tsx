@@ -1,8 +1,10 @@
-import { adminDashboardMock } from '../../mocks/adminDashboard'
+import { useAppState } from '../../context/AppStateContext'
 import { formatCurrency } from '../../utils/formatCurrency'
 import styles from './DashboardPage.module.css'
 
 export default function DashboardPage() {
+  const { dashboardSummary } = useAppState()
+
   return (
     <section>
       <div className={styles.header}>
@@ -21,17 +23,17 @@ export default function DashboardPage() {
         <article className={styles.metricCard}>
           <p className={styles.metricLabel}>Today's collection</p>
           <p className={styles.metricValue}>
-            {formatCurrency(adminDashboardMock.todaysCollection)}
+            {formatCurrency(dashboardSummary.todaysCollection)}
           </p>
         </article>
         <article className={styles.metricCard}>
           <p className={styles.metricLabel}>Top customer</p>
-          <p className={styles.metricValue}>{adminDashboardMock.topCustomer}</p>
+          <p className={styles.metricValue}>{dashboardSummary.topCustomer}</p>
         </article>
         <article className={styles.metricCard}>
           <p className={styles.metricLabel}>Low-stock alerts</p>
           <p className={styles.metricValue}>
-            {adminDashboardMock.lowStockAlerts.length}
+            {dashboardSummary.lowStockAlerts.length}
           </p>
         </article>
       </div>
@@ -40,7 +42,7 @@ export default function DashboardPage() {
         <section className={styles.panel}>
           <h2 className={styles.panelTitle}>Order status counts</h2>
           <ul className={styles.list}>
-            {adminDashboardMock.orderCounts.map((item) => (
+            {dashboardSummary.orderCounts.map((item) => (
               <li className={styles.listItem} key={item.label}>
                 <span>{item.label}</span>
                 <span className={styles.badge}>{item.value}</span>
@@ -51,7 +53,7 @@ export default function DashboardPage() {
         <section className={styles.panel}>
           <h2 className={styles.panelTitle}>Trending products</h2>
           <ul className={styles.list}>
-            {adminDashboardMock.trendingProducts.map((product) => (
+            {dashboardSummary.trendingProducts.map((product) => (
               <li className={styles.listItem} key={product}>
                 <span>{product}</span>
                 <span className={styles.badge}>Trending</span>
@@ -62,7 +64,7 @@ export default function DashboardPage() {
         <section className={styles.panel}>
           <h2 className={styles.panelTitle}>Low-stock watchlist</h2>
           <ul className={styles.list}>
-            {adminDashboardMock.lowStockAlerts.map((alert) => (
+            {dashboardSummary.lowStockAlerts.map((alert) => (
               <li className={styles.listItem} key={alert.name}>
                 <span>{alert.name}</span>
                 <span className={styles.badge}>{alert.stock} left</span>
