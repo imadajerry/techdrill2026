@@ -11,5 +11,14 @@ app.use('/api',authRoutes);
 const productRoutes = require('./routes/productRoutes');
 app.use('/api',productRoutes);
 
+const cartRoutes = require('./routes/cartRoutes');
+app.use('/api',cartRoutes);
+
+const orderRoutes = require('./routes/orderRoutes');
+app.use('/api',orderRoutes);
+
+const recomRoutes = require('./routes/orderRoutes');
+app.use('/api',recomRoutes);
+
 app.use(bodyParser.json());
 module.exports = app;
