@@ -42,23 +42,36 @@ export default function ProductsPage() {
           </>
         }
         aside={
-          <div className={styles.heroSpotlight}>
-            <img
-              alt={spotlightProduct.name}
-              className={styles.heroImage}
-              src={spotlightProduct.image}
-            />
-            <div>
-              <p className={styles.heroLabel}>Spotlight drop</p>
-              <h2 className={styles.heroTitle}>{spotlightProduct.name}</h2>
-              <p className={styles.heroCopy}>{spotlightProduct.description}</p>
-              <p className={styles.heroPrice}>
-                {formatCurrency(spotlightProduct.price)}
-              </p>
+          spotlightProduct ? (
+            <div className={styles.heroSpotlight}>
+              <img
+                alt={spotlightProduct.name}
+                className={styles.heroImage}
+                src={spotlightProduct.image}
+              />
+              <div>
+                <p className={styles.heroLabel}>Spotlight drop</p>
+                <h2 className={styles.heroTitle}>{spotlightProduct.name}</h2>
+                <p className={styles.heroCopy}>{spotlightProduct.description}</p>
+                <p className={styles.heroPrice}>
+                  {formatCurrency(spotlightProduct.price)}
+                </p>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className={styles.heroSpotlight}>
+              <div>
+                <p className={styles.heroLabel}>Catalog pending</p>
+                <h2 className={styles.heroTitle}>No products loaded yet.</h2>
+                <p className={styles.heroCopy}>
+                  Product cards will appear here once the frontend receives live
+                  catalog data from the backend.
+                </p>
+              </div>
+            </div>
+          )
         }
-        description="A full browse layer is now in place with category filters, catalog cards, and sale-aware pricing that already follows the shared product contract."
+        description="A full browse layer is in place with category filters and sale-aware pricing, ready for backend-sourced catalog results."
         eyebrow="Customer catalog"
         title="Most popular products, shaped for motion."
       />
@@ -70,7 +83,7 @@ export default function ProductsPage() {
           value={`${products.length}`}
         />
         <StatCard
-          helper="Original and sale prices are already represented in the mock data."
+          helper="Original and sale prices render directly from the live product payload."
           label="Live markdowns"
           tone="accent"
           value={`${saleCount}`}
@@ -101,11 +114,18 @@ export default function ProductsPage() {
             </button>
           ))}
         </div>
-        <div className={styles.productGrid}>
-          {filteredProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        {filteredProducts.length === 0 ? (
+          <p className={styles.emptyState}>
+            No products are available yet. Connect the catalog endpoint to load
+            live inventory into this view.
+          </p>
+        ) : (
+          <div className={styles.productGrid}>
+            {filteredProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        )}
       </SectionCard>
     </div>
   )
