@@ -4,26 +4,29 @@ import PageIntro from '../../components/ui/PageIntro'
 import ProductCard from '../../components/ui/ProductCard'
 import SectionCard from '../../components/ui/SectionCard'
 import StatCard from '../../components/ui/StatCard'
-import { catalogProducts, productCategories } from '../../mocks/products'
+import { useAppState } from '../../context/AppStateContext'
 import { formatCurrency } from '../../utils/formatCurrency'
 import styles from './CustomerPages.module.css'
 
-const categoryOptions = ['All', ...productCategories]
-
 export default function ProductsPage() {
+  const { favouriteProducts, products } = useAppState()
   const [selectedCategory, setSelectedCategory] = useState('All')
+  const productCategories = Array.from(
+    new Set(products.map((product) => product.category)),
+  )
+  const categoryOptions = ['All', ...productCategories]
 
   const filteredProducts =
     selectedCategory === 'All'
-      ? catalogProducts
-      : catalogProducts.filter((product) => product.category === selectedCategory)
+      ? products
+      : products.filter((product) => product.category === selectedCategory)
 
-  const saleCount = catalogProducts.filter(
+  const saleCount = products.filter(
     (product) =>
       product.originalPrice !== undefined && product.originalPrice > product.price,
   ).length
 
-  const spotlightProduct = catalogProducts[0]
+  const spotlightProduct = products[0]
 
   return (
     <div className={styles.page}>
@@ -64,7 +67,7 @@ export default function ProductsPage() {
         <StatCard
           helper="Expanded from the initial featured-drop shell."
           label="Active SKUs"
-          value={`${catalogProducts.length}`}
+          value={`${products.length}`}
         />
         <StatCard
           helper="Original and sale prices are already represented in the mock data."
@@ -73,10 +76,10 @@ export default function ProductsPage() {
           value={`${saleCount}`}
         />
         <StatCard
-          helper="Useful later for segmentation and homepage recommendations."
-          label="Shop categories"
+          helper="Live favourite saves are now shared across the storefront."
+          label="Saved picks"
           tone="dark"
-          value={`${productCategories.length}`}
+          value={`${favouriteProducts.length}`}
         />
       </div>
 
