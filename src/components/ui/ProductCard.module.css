@@ -42,6 +42,44 @@
   margin: 0 0 16px;
 }
 
+.metaRow {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.sizePicker {
+  display: grid;
+  gap: 6px;
+}
+
+.sizeLabel {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.select {
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-text-strong);
+  font: inherit;
+  min-height: 38px;
+  padding: 0 14px;
+}
+
+.cartCount {
+  background: rgba(26, 82, 70, 0.1);
+  border-radius: 999px;
+  color: #1a5246;
+  font-size: 0.8rem;
+  padding: 6px 10px;
+}
+
 .footer {
   align-items: center;
   display: flex;
@@ -72,4 +110,64 @@
   color: var(--color-accent);
   font-size: 0.8rem;
   padding: 6px 10px;
+}
+
+.actions {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-top: 16px;
+}
+
+.primaryButton,
+.secondaryButton {
+  align-items: center;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  gap: 8px;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 14px;
+}
+
+.primaryButton {
+  background: var(--color-text-strong);
+  border: 0;
+  color: white;
+}
+
+.primaryButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.secondaryButton {
+  background: white;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-strong);
+}
+
+.secondaryButtonActive {
+  background: rgba(200, 87, 43, 0.1);
+  border-color: rgba(200, 87, 43, 0.18);
+  color: var(--color-accent);
+}
+
+.feedback {
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+  margin: 12px 0 0;
+}
+
+@media (max-width: 520px) {
+  .actions {
+    grid-template-columns: 1fr;
+  }
+
+  .metaRow {
+    align-items: start;
+    flex-direction: column;
+  }
 }
