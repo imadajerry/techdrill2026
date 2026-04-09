@@ -1,37 +1,20 @@
-import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import PageIntro from '../../components/ui/PageIntro'
 import SectionCard from '../../components/ui/SectionCard'
 import StatCard from '../../components/ui/StatCard'
 import StatusBadge from '../../components/ui/StatusBadge'
-import { initialCartItems } from '../../mocks/cart'
-import { recommendedProducts } from '../../mocks/products'
+import { useAppState } from '../../context/AppStateContext'
 import { formatCurrency } from '../../utils/formatCurrency'
 import styles from './CustomerPages.module.css'
 
 export default function CartPage() {
-  const [cartItems, setCartItems] = useState(initialCartItems)
-
-  function updateQuantity(itemId: string, delta: number) {
-    setCartItems((currentItems) =>
-      currentItems.map((item) => {
-        if (item.id !== itemId) {
-          return item
-        }
-
-        return {
-          ...item,
-          quantity: Math.max(1, Math.min(item.product.stock, item.quantity + delta)),
-        }
-      }),
-    )
-  }
-
-  function removeItem(itemId: string) {
-    setCartItems((currentItems) =>
-      currentItems.filter((item) => item.id !== itemId),
-    )
-  }
+  const {
+    addToCart,
+    cartItems,
+    recommendedProducts,
+    removeCartItem,
+    updateCartItemQuantity,
+  } = useAppState()
 
   const subtotal = cartItems.reduce(
     (sum, item) => sum + item.product.price * item.quantity,
@@ -137,7 +120,7 @@ export default function CartPage() {
                       <div className={styles.quantityControl}>
                         <button
                           className={styles.quantityButton}
-                          onClick={() => updateQuantity(item.id, -1)}
+                          onClick={() => updateCartItemQuantity(item.id, -1)}
                           type="button"
                         >
                           -
@@ -145,17 +128,17 @@ export default function CartPage() {
                         <span>{item.quantity}</span>
                         <button
                           className={styles.quantityButton}
-                          onClick={() => updateQuantity(item.id, 1)}
+                          onClick={() => updateCartItemQuantity(item.id, 1)}
                           type="button"
                         >
                           +
                         </button>
                       </div>
-                      <button
-                        className={styles.removeButton}
-                        onClick={() => removeItem(item.id)}
-                        type="button"
-                      >
+                        <button
+                          className={styles.removeButton}
+                          onClick={() => removeCartItem(item.id)}
+                          type="button"
+                        >
                         Remove item
                       </button>
                     </div>
@@ -207,9 +190,18 @@ export default function CartPage() {
                     <h3 className={styles.recommendationName}>{product.name}</h3>
                     <p className={styles.recommendationCopy}>{product.category}</p>
                   </div>
-                  <StatusBadge tone="dark">
-                    {formatCurrency(product.price)}
-                  </StatusBadge>
+                  <div className={styles.recommendationActions}>
+                    <StatusBadge tone="dark">
+                      {formatCurrency(product.price)}
+                    </StatusBadge>
+                    <button
+                      className={styles.inlineAction}
+                      onClick={() => addToCart(product.id, 'UK 8')}
+                      type="button"
+                    >
+                      Add
+                    </button>
+                  </div>
                 </article>
               ))}
             </div>
