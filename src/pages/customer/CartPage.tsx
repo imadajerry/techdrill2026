@@ -1,0 +1,221 @@
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import PageIntro from '../../components/ui/PageIntro'
+import SectionCard from '../../components/ui/SectionCard'
+import StatCard from '../../components/ui/StatCard'
+import StatusBadge from '../../components/ui/StatusBadge'
+import { initialCartItems } from '../../mocks/cart'
+import { recommendedProducts } from '../../mocks/products'
+import { formatCurrency } from '../../utils/formatCurrency'
+import styles from './CustomerPages.module.css'
+
+export default function CartPage() {
+  const [cartItems, setCartItems] = useState(initialCartItems)
+
+  function updateQuantity(itemId: string, delta: number) {
+    setCartItems((currentItems) =>
+      currentItems.map((item) => {
+        if (item.id !== itemId) {
+          return item
+        }
+
+        return {
+          ...item,
+          quantity: Math.max(1, Math.min(item.product.stock, item.quantity + delta)),
+        }
+      }),
+    )
+  }
+
+  function removeItem(itemId: string) {
+    setCartItems((currentItems) =>
+      currentItems.filter((item) => item.id !== itemId),
+    )
+  }
+
+  const subtotal = cartItems.reduce(
+    (sum, item) => sum + item.product.price * item.quantity,
+    0,
+  )
+  const savings = cartItems.reduce((sum, item) => {
+    const originalPrice = item.product.originalPrice ?? item.product.price
+    return sum + Math.max(0, originalPrice - item.product.price) * item.quantity
+  }, 0)
+  const shipping = cartItems.length === 0 || subtotal >= 10000 ? 0 : 299
+  const total = subtotal + shipping
+  const amountForFreeShipping = Math.max(0, 10000 - subtotal)
+
+  return (
+    <div className={styles.page}>
+      <PageIntro
+        actions={
+          <>
+            <Link className={styles.primaryAction} to="/products">
+              Continue shopping
+            </Link>
+            <Link className={styles.secondaryAction} to="/orders">
+              Track active orders
+            </Link>
+          </>
+        }
+        description="Cart state is now visible as a real customer surface with quantity controls, price math, and a summary block that can later hand off to checkout and payment."
+        eyebrow="Customer cart"
+        title="Review the bag before checkout."
+      />
+
+      <div className={styles.statsGrid}>
+        <StatCard
+          helper="The cart summary already follows the same price envelope planned for checkout."
+          label="Items in bag"
+          value={`${cartItems.length}`}
+        />
+        <StatCard
+          helper={
+            shipping === 0
+              ? 'Your order already qualifies for free express shipping.'
+              : `${formatCurrency(amountForFreeShipping)} away from free shipping.`
+          }
+          label="Shipping"
+          tone="accent"
+          value={shipping === 0 ? 'Free' : formatCurrency(shipping)}
+        />
+        <StatCard
+          helper="This is derived from originalPrice versus current price."
+          label="Savings"
+          tone="dark"
+          value={formatCurrency(savings)}
+        />
+      </div>
+
+      <div className={styles.cartLayout}>
+        <SectionCard
+          description="Quantity controls are local for now, but the layout is ready for real cart API mutations."
+          title="Bag items"
+        >
+          {cartItems.length === 0 ? (
+            <p className={styles.emptyState}>
+              Your cart is empty. Browse the collection and add a few pairs to
+              continue the main buy flow.
+            </p>
+          ) : (
+            <div className={styles.cartList}>
+              {cartItems.map((item) => (
+                <article className={styles.cartItem} key={item.id}>
+                  <img
+                    alt={item.product.name}
+                    className={styles.itemImage}
+                    src={item.product.image}
+                  />
+                  <div className={styles.itemBody}>
+                    <div className={styles.itemHeader}>
+                      <div>
+                        <h3 className={styles.itemName}>{item.product.name}</h3>
+                        <p className={styles.itemMeta}>
+                          {item.product.category} · Size {item.size}
+                        </p>
+                      </div>
+                      <div className={styles.priceBlock}>
+                        {formatCurrency(item.product.price * item.quantity)}
+                        {item.product.originalPrice ? (
+                          <span className={styles.mutedPrice}>
+                            {formatCurrency(item.product.originalPrice * item.quantity)}
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <div className={styles.inlineMeta}>
+                      <StatusBadge tone="accent">
+                        {item.product.stock} left in stock
+                      </StatusBadge>
+                      {item.product.badge ? (
+                        <StatusBadge>{item.product.badge}</StatusBadge>
+                      ) : null}
+                    </div>
+
+                    <div className={styles.controlRow}>
+                      <div className={styles.quantityControl}>
+                        <button
+                          className={styles.quantityButton}
+                          onClick={() => updateQuantity(item.id, -1)}
+                          type="button"
+                        >
+                          -
+                        </button>
+                        <span>{item.quantity}</span>
+                        <button
+                          className={styles.quantityButton}
+                          onClick={() => updateQuantity(item.id, 1)}
+                          type="button"
+                        >
+                          +
+                        </button>
+                      </div>
+                      <button
+                        className={styles.removeButton}
+                        onClick={() => removeItem(item.id)}
+                        type="button"
+                      >
+                        Remove item
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </SectionCard>
+
+        <div className={styles.stack}>
+          <SectionCard
+            description="Shipping stays mocked for now, but the structure matches what the checkout step will need."
+            title="Order summary"
+          >
+            <div className={styles.summaryList}>
+              <div className={styles.summaryRow}>
+                <span>Subtotal</span>
+                <span>{formatCurrency(subtotal)}</span>
+              </div>
+              <div className={styles.summaryRow}>
+                <span>Savings</span>
+                <span>-{formatCurrency(savings)}</span>
+              </div>
+              <div className={styles.summaryRow}>
+                <span>Shipping</span>
+                <span>{shipping === 0 ? 'Free' : formatCurrency(shipping)}</span>
+              </div>
+              <div className={`${styles.summaryRow} ${styles.summaryTotal}`.trim()}>
+                <span>Total</span>
+                <span>{formatCurrency(total)}</span>
+              </div>
+            </div>
+          </SectionCard>
+
+          <SectionCard
+            description="These recommendations reuse the shared catalog shape, so they can later be replaced by AI- or analytics-driven suggestions."
+            title="Add one more pair"
+          >
+            <div className={styles.recommendationList}>
+              {recommendedProducts.slice(0, 3).map((product) => (
+                <article className={styles.recommendationItem} key={product.id}>
+                  <img
+                    alt={product.name}
+                    className={styles.recommendationThumb}
+                    src={product.image}
+                  />
+                  <div>
+                    <h3 className={styles.recommendationName}>{product.name}</h3>
+                    <p className={styles.recommendationCopy}>{product.category}</p>
+                  </div>
+                  <StatusBadge tone="dark">
+                    {formatCurrency(product.price)}
+                  </StatusBadge>
+                </article>
+              ))}
+            </div>
+          </SectionCard>
+        </div>
+      </div>
+    </div>
+  )
+}
