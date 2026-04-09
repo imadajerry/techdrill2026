@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom'
 import ProductCard from '../../components/ui/ProductCard'
-import { featuredProducts } from '../../mocks/products'
+import { useAppState } from '../../context/AppStateContext'
 import styles from './HomePage.module.css'
 
 export default function HomePage() {
+  const { cartCount, favouriteProducts, featuredProducts } = useAppState()
+
   return (
     <div>
       <section className={styles.hero}>
@@ -34,15 +36,15 @@ export default function HomePage() {
       <section className={styles.stats}>
         <article className={styles.statCard}>
           <p className={styles.statLabel}>Recommended for you</p>
-          <p className={styles.statValue}>3 live picks</p>
+          <p className={styles.statValue}>{featuredProducts.length} live picks</p>
         </article>
         <article className={styles.statCard}>
-          <p className={styles.statLabel}>Cart readiness</p>
-          <p className={styles.statValue}>API scaffolded</p>
+          <p className={styles.statLabel}>Items in bag</p>
+          <p className={styles.statValue}>{cartCount}</p>
         </article>
         <article className={styles.statCard}>
-          <p className={styles.statLabel}>Checkout next</p>
-          <p className={styles.statValue}>Address + payment</p>
+          <p className={styles.statLabel}>Saved picks</p>
+          <p className={styles.statValue}>{favouriteProducts.length}</p>
         </article>
       </section>
 
