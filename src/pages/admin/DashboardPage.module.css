@@ -1,0 +1,100 @@
+.header {
+  align-items: end;
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.eyebrow {
+  color: var(--color-accent);
+  font-size: 0.82rem;
+  letter-spacing: 0.14em;
+  margin: 0 0 10px;
+  text-transform: uppercase;
+}
+
+.title {
+  color: var(--color-text-strong);
+  font-family: var(--font-display);
+  font-size: clamp(2.4rem, 4vw, 4rem);
+  margin: 0;
+}
+
+.copy {
+  color: var(--color-text-muted);
+  line-height: 1.65;
+  margin: 12px 0 0;
+  max-width: 60ch;
+}
+
+.grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.metricCard,
+.panel {
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-soft);
+}
+
+.metricCard {
+  padding: 24px;
+}
+
+.metricLabel {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  margin: 0 0 10px;
+  text-transform: uppercase;
+}
+
+.metricValue {
+  color: var(--color-text-strong);
+  font-family: var(--font-display);
+  font-size: 2rem;
+  margin: 0;
+}
+
+.columns {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  margin-top: 24px;
+}
+
+.panel {
+  padding: 24px;
+}
+
+.panelTitle {
+  color: var(--color-text-strong);
+  font-size: 1.1rem;
+  margin: 0 0 14px;
+}
+
+.list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+}
+
+.listItem {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  list-style: none;
+}
+
+.badge {
+  background: rgba(200, 87, 43, 0.1);
+  border-radius: 999px;
+  color: var(--color-accent);
+  padding: 6px 10px;
+}
