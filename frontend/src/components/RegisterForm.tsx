@@ -32,9 +32,14 @@ const RegisterForm = () => {
 
       console.log(res.data);
       alert("User registered successfully!");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
-      alert(error.response?.data?.message || "Error");
+      if (axios.isAxiosError<{ message?: string }>(error)) {
+        alert(error.response?.data?.message || "Error");
+        return;
+      }
+
+      alert("Error");
     }
   };
 

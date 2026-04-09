@@ -37,9 +37,14 @@ const LoginForm = () => {
       localStorage.setItem("token", res.data.token);
 
       alert("Login successful!");
-    } catch (error: any) {
+    } catch (error: unknown) {  
       console.error(error);
-      alert(error.response?.data?.message || "Login failed");
+      if (axios.isAxiosError<{ message?: string }>(error)) {
+        alert(error.response?.data?.message || "Login failed");
+        return;
+      }
+
+      alert("Login failed");
     }
   };
 
