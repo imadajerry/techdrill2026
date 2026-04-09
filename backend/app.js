@@ -7,6 +7,7 @@ app.use(cors());
 
 const authRoutes = require('./routes/authRoutes');
 app.use('/api',authRoutes);
+app.use('/api/auth', authRoutes);
   
 const productRoutes = require('./routes/productRoutes');
 app.use('/api',productRoutes);
@@ -17,7 +18,7 @@ app.use('/api',cartRoutes);
 const orderRoutes = require('./routes/orderRoutes');
 app.use('/api',orderRoutes);
 
-const recomRoutes = require('./routes/orderRoutes');
+const recomRoutes = require('./routes/smartRecommendation');
 app.use('/api',recomRoutes);
 
 app.use(bodyParser.json());

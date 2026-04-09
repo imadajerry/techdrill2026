@@ -15,11 +15,18 @@ export type OrderLineItem = {
   size: string
 }
 
+export type PaymentMethod = 'Card' | 'COD' | 'Razorpay' | 'UPI'
+
+export type CheckoutInput = {
+  paymentMethod: PaymentMethod
+  shippingAddress: string
+}
+
 export type CustomerOrder = {
   id: string
   eta: string
   items: OrderLineItem[]
-  paymentMethod: string
+  paymentMethod: PaymentMethod
   placedAt: string
   shippingAddress: string
   status: OrderStatus

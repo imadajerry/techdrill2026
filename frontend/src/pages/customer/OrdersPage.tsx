@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import OrderTimeline from '../../components/ui/OrderTimeline'
 import PageIntro from '../../components/ui/PageIntro'
 import SectionCard from '../../components/ui/SectionCard'
@@ -38,8 +38,10 @@ function getOrderTone(status: OrderStatus) {
 }
 
 export default function OrdersPage() {
+  const location = useLocation()
   const { customerOrders } = useAppState()
   const [selectedStatus, setSelectedStatus] = useState<'all' | OrderStatus>('all')
+  const placedOrderId = (location.state as { placedOrderId?: string } | null)?.placedOrderId
 
   const filteredOrders =
     selectedStatus === 'all'
@@ -90,6 +92,12 @@ export default function OrdersPage() {
           value="Backend"
         />
       </div>
+
+      {placedOrderId ? (
+        <StatusBadge tone="success">
+          Order {placedOrderId} placed successfully and added to the live queue.
+        </StatusBadge>
+      ) : null}
 
       <SectionCard
         description="Status filters use the same labels that the admin order pipeline works with, so both sides of the product share one language."

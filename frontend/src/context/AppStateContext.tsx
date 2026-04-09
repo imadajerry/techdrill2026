@@ -35,7 +35,7 @@ import type {
 } from '../types/admin'
 import type { CartItem } from '../types/cart'
 import type { DashboardSummary } from '../types/dashboard'
-import type { CustomerOrder, OrderStatus } from '../types/order'
+import type { CheckoutInput, CustomerOrder, OrderStatus } from '../types/order'
 import type { Product } from '../types/product'
 
 const sizeOptions = ['UK 7', 'UK 8', 'UK 9', 'UK 10']
@@ -71,6 +71,10 @@ type AppStateContextValue = {
   inventoryItems: InventoryItem[]
   isFavourite: (productId: string) => boolean
   managedUsers: ManagedUser[]
+  placeOrder: (
+    input: CheckoutInput,
+    customer: { email: string; name: string },
+  ) => CustomerOrder | null
   priceHistory: PriceHistoryEntry[]
   pricingCampaigns: PricingCampaign[]
   products: Product[]
@@ -195,6 +199,30 @@ function buildStorefrontProduct(
     ...currentProduct,
     originalPrice: undefined,
     price: basePrice,
+  }
+}
+
+function buildOrderId() {
+  return `TD-${String(Date.now()).slice(-6)}`
+}
+
+function createEtaDate() {
+  const etaDate = new Date()
+  etaDate.setDate(etaDate.getDate() + 4)
+  return etaDate.toISOString()
+}
+
+function summarizeCart(cartItems: CartItem[]) {
+  const subtotal = cartItems.reduce(
+    (sum, item) => sum + item.product.price * item.quantity,
+    0,
+  )
+  const shipping = cartItems.length === 0 || subtotal >= 10000 ? 0 : 299
+
+  return {
+    shipping,
+    subtotal,
+    total: subtotal + shipping,
   }
 }
 
@@ -606,6 +634,89 @@ export function AppStateProvider({ children }: PropsWithChildren) {
     return true
   }
 
+  function placeOrder(
+    input: CheckoutInput,
+    customer: { email: string; name: string },
+  ) {
+    if (!input.shippingAddress.trim() || cartItems.length === 0) {
+      return null
+    }
+
+    const orderId = buildOrderId()
+    const placedAt = new Date().toISOString()
+    const { total } = summarizeCart(cartItems)
+    const normalizedAddress = input.shippingAddress.trim()
+    const createdOrder: CustomerOrder = {
+      eta: createEtaDate(),
+      id: orderId,
+      items: cartItems.map((item) => ({
+        ...item,
+        product: cloneProduct(item.product),
+      })),
+      paymentMethod: input.paymentMethod,
+      placedAt,
+      shippingAddress: normalizedAddress,
+      status: 'placed',
+      total,
+      trackingNote:
+        'Order confirmed and waiting for ops acceptance. Tracking will update from the admin queue.',
+    }
+
+    setCustomerOrders((currentOrders) => [createdOrder, ...currentOrders])
+    setAdminOrders((currentOrders) => [
+      {
+        customerEmail: customer.email,
+        customerName: customer.name,
+        id: orderId,
+        itemCount: cartItems.reduce((sum, item) => sum + item.quantity, 0),
+        paymentStatus: input.paymentMethod === 'COD' ? 'pending' : 'paid',
+        placedAt,
+        status: 'placed',
+        total,
+      },
+      ...currentOrders,
+    ])
+
+    setInventoryItems((currentItems) =>
+      currentItems.map((item) => {
+        const matchedCartItem = cartItems.find(
+          (cartItem) => cartItem.product.id === item.id,
+        )
+
+        if (!matchedCartItem) {
+          return item
+        }
+
+        return {
+          ...item,
+          reservedStock: item.reservedStock + matchedCartItem.quantity,
+          stock: Math.max(0, item.stock - matchedCartItem.quantity),
+        }
+      }),
+    )
+
+    setProducts((currentProducts) =>
+      currentProducts.map((product) => {
+        const matchedCartItem = cartItems.find(
+          (cartItem) => cartItem.product.id === product.id,
+        )
+
+        if (!matchedCartItem) {
+          return product
+        }
+
+        return {
+          ...product,
+          stock: Math.max(0, product.stock - matchedCartItem.quantity),
+        }
+      }),
+    )
+
+    setCartItems([])
+
+    return createdOrder
+  }
+
   function togglePricingCampaign(campaignId: string) {
     const currentCampaign = pricingCampaigns.find(
       (campaign) => campaign.id === campaignId,
@@ -801,6 +912,7 @@ export function AppStateProvider({ children }: PropsWithChildren) {
         inventoryItems,
         isFavourite: (productId: string) => favouriteIds.includes(productId),
         managedUsers,
+        placeOrder,
         priceHistory,
         pricingCampaigns,
         products,

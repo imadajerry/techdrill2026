@@ -1,3 +1,5 @@
+const db = require('../config/db');
+
 const getSmartRecommendations = (req, res) => {
   const userId = req.params.userId;
 
@@ -14,6 +16,10 @@ const getSmartRecommendations = (req, res) => {
   `;
 
   db.query(cartQuery, [userId], (err, cartResults) => {
+    if (err) {
+      return res.status(500).json({ message: 'DB Error' });
+    }
+
     if (cartResults.length > 0) {
       return res.json(cartResults);
     }
@@ -30,6 +36,10 @@ const getSmartRecommendations = (req, res) => {
     `;
 
     db.query(activityQuery, [userId], (err, result) => {
+      if (err) {
+        return res.status(500).json({ message: 'DB Error' });
+      }
+
       if (result.length === 0) return res.json([]);
 
       const category = result[0].category;
@@ -38,6 +48,10 @@ const getSmartRecommendations = (req, res) => {
         "SELECT * FROM products WHERE category = ? LIMIT 10",
         [category],
         (err, products) => {
+          if (err) {
+            return res.status(500).json({ message: 'DB Error' });
+          }
+
           res.json(products);
         }
       );
@@ -45,6 +59,6 @@ const getSmartRecommendations = (req, res) => {
   });
 };
 
-module.export ={
-    getSmartRecommendations
-}
+module.exports = {
+  getSmartRecommendations,
+};

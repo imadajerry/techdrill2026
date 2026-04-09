@@ -14,6 +14,7 @@ import AdminUsersPage from '../pages/admin/UsersPage'
 import LoginPage from '../pages/auth/LoginPage'
 import RegisterPage from '../pages/auth/RegisterPage'
 import CartPage from '../pages/customer/CartPage'
+import CheckoutPage from '../pages/customer/CheckoutPage'
 import FavouritesPage from '../pages/customer/FavouritesPage'
 import HomePage from '../pages/customer/HomePage'
 import OrdersPage from '../pages/customer/OrdersPage'
@@ -38,6 +39,7 @@ const router = createBrowserRouter([
           { path: '/', element: <HomePage /> },
           { path: '/products', element: <ProductsPage /> },
           { path: '/cart', element: <CartPage /> },
+          { path: '/checkout', element: <CheckoutPage /> },
           { path: '/orders', element: <OrdersPage /> },
           { path: '/favourites', element: <FavouritesPage /> },
         ],

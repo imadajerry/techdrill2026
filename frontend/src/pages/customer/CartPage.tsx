@@ -36,12 +36,12 @@ export default function CartPage() {
             <Link className={styles.primaryAction} to="/products">
               Continue shopping
             </Link>
-            <Link className={styles.secondaryAction} to="/orders">
-              Track active orders
+            <Link className={styles.secondaryAction} to="/checkout">
+              Proceed to checkout
             </Link>
           </>
         }
-        description="Cart state is now visible as a real customer surface with quantity controls, price math, and a summary block that can later hand off to checkout and payment."
+        description="Cart state now feeds a working checkout flow with quantity controls, live totals, and a direct path to order placement."
         eyebrow="Customer cart"
         title="Review the bag before checkout."
       />
@@ -151,7 +151,14 @@ export default function CartPage() {
 
         <div className={styles.stack}>
           <SectionCard
-            description="Shipping totals now render from the current cart state and stay ready for checkout integration."
+            action={
+              cartItems.length > 0 ? (
+                <Link className={styles.inlineLinkButton} to="/checkout">
+                  Checkout
+                </Link>
+              ) : null
+            }
+            description="Shipping totals now feed directly into the checkout and order placement flow."
             title="Order summary"
           >
             <div className={styles.summaryList}>
