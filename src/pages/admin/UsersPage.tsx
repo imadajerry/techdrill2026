@@ -3,7 +3,7 @@ import PageIntro from '../../components/ui/PageIntro'
 import SectionCard from '../../components/ui/SectionCard'
 import StatCard from '../../components/ui/StatCard'
 import StatusBadge from '../../components/ui/StatusBadge'
-import { managedUsers } from '../../mocks/adminOperations'
+import { useAppState } from '../../context/AppStateContext'
 import type { UserRole } from '../../types/auth'
 import { formatDate } from '../../utils/formatDate'
 import styles from './AdminPages.module.css'
@@ -22,7 +22,20 @@ function getUserTone(status: 'active' | 'blocked' | 'pending') {
   return 'warning'
 }
 
+function getUserActionLabel(status: 'active' | 'blocked' | 'pending') {
+  if (status === 'pending') {
+    return 'Approve account'
+  }
+
+  if (status === 'blocked') {
+    return 'Unblock user'
+  }
+
+  return 'Block user'
+}
+
 export default function AdminUsersPage() {
+  const { managedUsers, toggleUserStatus } = useAppState()
   const [selectedRole, setSelectedRole] = useState<'all' | UserRole>('all')
 
   const filteredUsers =
@@ -105,8 +118,12 @@ export default function AdminUsersPage() {
               <div className={styles.rowActions}>
                 <StatusBadge tone="dark">{user.role}</StatusBadge>
                 <StatusBadge tone={getUserTone(user.status)}>{user.status}</StatusBadge>
-                <button className={styles.secondaryButton} type="button">
-                  Review account
+                <button
+                  className={styles.secondaryButton}
+                  onClick={() => toggleUserStatus(user.id)}
+                  type="button"
+                >
+                  {getUserActionLabel(user.status)}
                 </button>
               </div>
             </article>
