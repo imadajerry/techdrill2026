@@ -2,7 +2,7 @@ import PageIntro from '../../components/ui/PageIntro'
 import SectionCard from '../../components/ui/SectionCard'
 import StatCard from '../../components/ui/StatCard'
 import StatusBadge from '../../components/ui/StatusBadge'
-import { priceHistory, pricingCampaigns } from '../../mocks/adminOperations'
+import { useAppState } from '../../context/AppStateContext'
 import { formatCurrency } from '../../utils/formatCurrency'
 import { formatDate } from '../../utils/formatDate'
 import styles from './AdminPages.module.css'
@@ -19,7 +19,20 @@ function getCampaignTone(status: 'scheduled' | 'live' | 'ended') {
   return 'neutral'
 }
 
+function getCampaignAction(status: 'scheduled' | 'live' | 'ended') {
+  if (status === 'scheduled') {
+    return 'Launch now'
+  }
+
+  if (status === 'live') {
+    return 'End campaign'
+  }
+
+  return 'Schedule again'
+}
+
 export default function AdminPricingPage() {
+  const { priceHistory, pricingCampaigns, togglePricingCampaign } = useAppState()
   const scheduledCount = pricingCampaigns.filter(
     (campaign) => campaign.status === 'scheduled',
   ).length
@@ -97,6 +110,13 @@ export default function AdminPricingPage() {
                 <p className={styles.cardCopy}>
                   {formatDate(campaign.startsAt)} to {formatDate(campaign.endsAt)}
                 </p>
+                <button
+                  className={styles.actionButton}
+                  onClick={() => togglePricingCampaign(campaign.id)}
+                  type="button"
+                >
+                  {getCampaignAction(campaign.status)}
+                </button>
               </article>
             ))}
           </div>
