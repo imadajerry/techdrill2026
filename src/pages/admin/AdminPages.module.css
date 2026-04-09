@@ -193,6 +193,12 @@
   height: 100%;
 }
 
+.inlineActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .splitGrid {
   display: grid;
   gap: 20px;
