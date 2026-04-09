@@ -48,51 +48,8 @@ export default function OrdersPage() {
       ? customerOrders
       : customerOrders.filter((order) => order.status === selectedStatus)
 
-  const liveOrders = customerOrders.filter(
-    (order) => !['delivered', 'rejected'].includes(order.status),
-  ).length
-  const deliveredOrders = customerOrders.filter(
-    (order) => order.status === 'delivered',
-  ).length
-
   return (
     <div className={styles.page}>
-      <PageIntro
-        actions={
-          <>
-            <Link className={styles.primaryAction} to="/products">
-              Shop more
-            </Link>
-            <Link className={styles.secondaryAction} to="/cart">
-              Open cart
-            </Link>
-          </>
-        }
-        description="Order tracking now has a dedicated routed surface with stage badges, timeline visualization, delivery details, and room for future live status updates."
-        eyebrow="Customer orders"
-        title="Track every order from placement to delivery."
-      />
-
-      <div className={styles.statsGrid}>
-        <StatCard
-          helper="Accepted, processed, and dispatched orders stay visible at the top of the feed."
-          label="Active orders"
-          value={`${liveOrders}`}
-        />
-        <StatCard
-          helper="Delivered orders remain in history with the same shared status vocabulary."
-          label="Delivered"
-          tone="accent"
-          value={`${deliveredOrders}`}
-        />
-        <StatCard
-          helper="Order updates now depend on backend status changes instead of seeded frontend fixtures."
-          label="Tracking mode"
-          tone="dark"
-          value="Backend"
-        />
-      </div>
-
       {placedOrderId ? (
         <StatusBadge tone="success">
           Order {placedOrderId} placed successfully and added to the live queue.
@@ -100,7 +57,6 @@ export default function OrdersPage() {
       ) : null}
 
       <SectionCard
-        description="Status filters use the same labels that the admin order pipeline works with, so both sides of the product share one language."
         title="Order history"
       >
         <div className={styles.filterRow}>
