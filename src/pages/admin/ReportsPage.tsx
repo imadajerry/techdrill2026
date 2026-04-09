@@ -1,12 +1,18 @@
+import { useState } from 'react'
 import PageIntro from '../../components/ui/PageIntro'
 import SectionCard from '../../components/ui/SectionCard'
 import StatCard from '../../components/ui/StatCard'
 import StatusBadge from '../../components/ui/StatusBadge'
-import { recentExports, reportTemplates } from '../../mocks/adminOperations'
+import { useAppState } from '../../context/AppStateContext'
+import { useAuth } from '../../context/AuthContext'
 import { formatDate } from '../../utils/formatDate'
 import styles from './AdminPages.module.css'
 
 export default function AdminReportsPage() {
+  const { downloadExport, generateReport, recentExports, reportTemplates } =
+    useAppState()
+  const { user } = useAuth()
+  const [feedbackMessage, setFeedbackMessage] = useState('')
   const readyExports = recentExports.filter((item) => item.status === 'ready').length
 
   return (
@@ -47,6 +53,10 @@ export default function AdminReportsPage() {
         />
       </div>
 
+      {feedbackMessage ? (
+        <StatusBadge tone="accent">{feedbackMessage}</StatusBadge>
+      ) : null}
+
       <div className={styles.splitGrid}>
         <SectionCard
           description="These cards are the natural place to trigger backend report generation later."
@@ -63,6 +73,24 @@ export default function AdminReportsPage() {
                   <StatusBadge tone="dark">{template.format}</StatusBadge>
                 </div>
                 <StatusBadge tone="accent">{template.periodLabel}</StatusBadge>
+                <button
+                  className={styles.actionButton}
+                  onClick={() => {
+                    const exportRecord = generateReport(
+                      template.id,
+                      user?.name ?? 'Operations',
+                    )
+
+                    if (exportRecord) {
+                      setFeedbackMessage(
+                        `${exportRecord.title} queued for generation.`,
+                      )
+                    }
+                  }}
+                  type="button"
+                >
+                  Generate export
+                </button>
               </article>
             ))}
           </div>
@@ -86,6 +114,23 @@ export default function AdminReportsPage() {
                   <StatusBadge tone={report.status === 'ready' ? 'success' : 'warning'}>
                     {report.status}
                   </StatusBadge>
+                  {report.status === 'ready' ? (
+                    <button
+                      className={styles.secondaryButton}
+                      onClick={() => {
+                        const exportRecord = downloadExport(report.id)
+
+                        if (exportRecord) {
+                          setFeedbackMessage(
+                            `Prepared ${exportRecord.title} for download.`,
+                          )
+                        }
+                      }}
+                      type="button"
+                    >
+                      Download
+                    </button>
+                  ) : null}
                 </div>
               </article>
             ))}
