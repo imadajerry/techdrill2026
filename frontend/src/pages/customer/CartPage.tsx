@@ -151,7 +151,7 @@ export default function CartPage() {
 
         <div className={styles.stack}>
           <SectionCard
-            description="Shipping stays mocked for now, but the structure matches what the checkout step will need."
+            description="Shipping totals now render from the current cart state and stay ready for checkout integration."
             title="Order summary"
           >
             <div className={styles.summaryList}>

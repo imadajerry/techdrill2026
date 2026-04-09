@@ -84,10 +84,10 @@ export default function OrdersPage() {
           value={`${deliveredOrders}`}
         />
         <StatCard
-          helper="The next backend step is replacing this with order-level webhooks or polling."
+          helper="Order updates now depend on backend status changes instead of seeded frontend fixtures."
           label="Tracking mode"
           tone="dark"
-          value="Mock live"
+          value="Backend"
         />
       </div>
 

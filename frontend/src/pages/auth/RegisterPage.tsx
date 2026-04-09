@@ -72,7 +72,7 @@ export default function RegisterPage() {
     try {
       const email = await registerAccount(registerState)
       setPendingEmail(email)
-      setSuccessMessage('OTP sent. Use 123456 while mock mode is enabled.')
+      setSuccessMessage('OTP sent. Check your email for the verification code.')
       navigate('/verify-otp', {
         replace: true,
         state: { email },
@@ -118,15 +118,15 @@ export default function RegisterPage() {
   return (
     <section className={styles.card}>
       <p className={styles.eyebrow}>
-        {isOtpStep ? 'OTP verification' : 'Customer onboarding'}
+        {isOtpStep ? 'OTP verification' : 'Register'}
       </p>
       <h1 className={styles.title}>
-        {isOtpStep ? 'Activate your account.' : 'Create a customer account.'}
+        {isOtpStep ? 'Activate your account.' : 'Create an account.'}
       </h1>
       <p className={styles.copy}>
         {isOtpStep
           ? `We sent a six-digit code to ${pendingEmail || 'your email'}.`
-          : 'Registration is customer-first. Admin accounts stay managed from the back office.'}
+          : ''}
       </p>
       {!isOtpStep ? (
         <form className={styles.form} onSubmit={handleRegister}>
@@ -216,13 +216,15 @@ export default function RegisterPage() {
               inputMode="numeric"
               maxLength={6}
               onChange={(event) => setOtp(event.target.value)}
-              placeholder="123456"
+              placeholder="6-digit code"
               type="text"
               value={otp}
             />
           </div>
           {errorMessage ? <div className={styles.error}>{errorMessage}</div> : null}
-          <div className={styles.hint}>Use `123456` while mock mode is enabled.</div>
+          <div className={styles.hint}>
+            Enter the six-digit code sent to your email address.
+          </div>
           <button className={styles.submit} disabled={isSubmitting} type="submit">
             {isSubmitting ? 'Verifying OTP...' : 'Verify OTP'}
           </button>
@@ -231,7 +233,7 @@ export default function RegisterPage() {
       <p className={styles.footer}>
         Already have access?{' '}
         <Link className={styles.link} to="/login">
-          Back to login
+          Login
         </Link>
       </p>
     </section>

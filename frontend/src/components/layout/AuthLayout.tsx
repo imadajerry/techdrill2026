@@ -9,13 +9,9 @@ export default function AuthLayout({ children }: PropsWithChildren) {
         <div>
           <p className={styles.brand}>TechDrill Commerce</p>
           <h1 className={styles.headline}>Built for sharp product drops.</h1>
-          <p className={styles.copy}>
-            One login, two surfaces. Customers shop a premium storefront while
-            admins run inventory, orders, and reporting from the same codebase.
-          </p>
         </div>
         <p className={styles.note}>
-          Mock accounts: customer, admin, and superadmin all use `password123`.
+          Sign in with the credentials issued for your customer or admin account.
         </p>
       </section>
       <section className={styles.panel}>
