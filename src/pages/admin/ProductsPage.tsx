@@ -2,7 +2,7 @@ import PageIntro from '../../components/ui/PageIntro'
 import SectionCard from '../../components/ui/SectionCard'
 import StatCard from '../../components/ui/StatCard'
 import StatusBadge from '../../components/ui/StatusBadge'
-import { inventoryItems, pricingCampaigns } from '../../mocks/adminOperations'
+import { useAppState } from '../../context/AppStateContext'
 import { formatCurrency } from '../../utils/formatCurrency'
 import styles from './AdminPages.module.css'
 
@@ -19,6 +19,12 @@ function getStockTone(stock: number, reorderLevel: number) {
 }
 
 export default function AdminProductsPage() {
+  const {
+    adjustInventoryReserved,
+    adjustInventoryStock,
+    inventoryItems,
+    pricingCampaigns,
+  } = useAppState()
   const lowStockCount = inventoryItems.filter(
     (item) => item.stock <= item.reorderLevel,
   ).length
@@ -114,6 +120,37 @@ export default function AdminProductsPage() {
                     className={styles.progressFill}
                     style={{ width: `${Math.max(stockRatio, 8)}%` }}
                   />
+                </div>
+
+                <div className={styles.inlineActions}>
+                  <button
+                    className={styles.secondaryButton}
+                    onClick={() => adjustInventoryStock(item.id, -1)}
+                    type="button"
+                  >
+                    Stock -1
+                  </button>
+                  <button
+                    className={styles.actionButton}
+                    onClick={() => adjustInventoryStock(item.id, 5)}
+                    type="button"
+                  >
+                    Restock +5
+                  </button>
+                  <button
+                    className={styles.secondaryButton}
+                    onClick={() => adjustInventoryReserved(item.id, -1)}
+                    type="button"
+                  >
+                    Release 1
+                  </button>
+                  <button
+                    className={styles.secondaryButton}
+                    onClick={() => adjustInventoryReserved(item.id, 1)}
+                    type="button"
+                  >
+                    Reserve 1
+                  </button>
                 </div>
               </article>
             )
