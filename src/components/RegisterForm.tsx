@@ -1,4 +1,4 @@
-const LoginForm = () => {
+const RegisterForm = () => {
   return (
     <div>
         <h1>Register Page</h1>
@@ -15,4 +15,4 @@ const LoginForm = () => {
   )
 }
 
-export default LoginForm
+export default RegisterForm
