@@ -5,22 +5,21 @@ const reportController = require('../controllers/reportController');
 const verifyToken = require('../middleware/authMiddleware');
 const requireRole = require('../middleware/roleMiddleware');
 
-// All admin routes require auth + admin/superadmin role
-adminRoutes.use(verifyToken, requireRole('admin', 'superadmin'));
+const adminGuard = [verifyToken, requireRole('admin', 'superadmin')];
 
 // Dashboard
-adminRoutes.get('/admin/dashboard', adminController.getDashboard);
+adminRoutes.get('/admin/dashboard', ...adminGuard, adminController.getDashboard);
 
 // User management
-adminRoutes.get('/admin/users', adminController.getUsers);
-adminRoutes.put('/admin/users/:id', adminController.updateUserStatus);
+adminRoutes.get('/admin/users', ...adminGuard, adminController.getUsers);
+adminRoutes.put('/admin/users/:id', ...adminGuard, adminController.updateUserStatus);
 
 // Inventory
-adminRoutes.get('/admin/inventory', adminController.getInventory);
-adminRoutes.put('/admin/inventory/:id', adminController.updateInventory);
+adminRoutes.get('/admin/inventory', ...adminGuard, adminController.getInventory);
+adminRoutes.put('/admin/inventory/:id', ...adminGuard, adminController.updateInventory);
 
 // Reports
-adminRoutes.get('/admin/reports/orders', reportController.getOrderSummary);
-adminRoutes.get('/admin/reports/payments', reportController.getPaymentSummary);
+adminRoutes.get('/admin/reports/orders', ...adminGuard, reportController.getOrderSummary);
+adminRoutes.get('/admin/reports/payments', ...adminGuard, reportController.getPaymentSummary);
 
 module.exports = adminRoutes;

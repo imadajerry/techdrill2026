@@ -6,11 +6,11 @@ USE techdrill2026;
 -- Test users (password for all: "Test@123")
 -- bcrypt hash of "Test@123" with 10 rounds
 INSERT INTO users (username, email, password, role, status) VALUES
-('Aarav Menon',    'customer@techdrill.dev',   '$2b$10$LkSc6Y0jG3rGqjY0qMpOAOqZFmAkREb4RK6z5s8Xr/CmYwVZJQlSq', 'customer',   'active'),
-('Nisha Rao',      'admin@techdrill.dev',      '$2b$10$LkSc6Y0jG3rGqjY0qMpOAOqZFmAkREb4RK6z5s8Xr/CmYwVZJQlSq', 'admin',      'active'),
-('Ishaan Kapoor',  'superadmin@techdrill.dev', '$2b$10$LkSc6Y0jG3rGqjY0qMpOAOqZFmAkREb4RK6z5s8Xr/CmYwVZJQlSq', 'superadmin', 'active'),
-('Sara Bhat',      'newuser@techdrill.dev',    '$2b$10$LkSc6Y0jG3rGqjY0qMpOAOqZFmAkREb4RK6z5s8Xr/CmYwVZJQlSq', 'customer',   'pending'),
-('Dev Malhotra',   'blocked@techdrill.dev',    '$2b$10$LkSc6Y0jG3rGqjY0qMpOAOqZFmAkREb4RK6z5s8Xr/CmYwVZJQlSq', 'customer',   'blocked');
+('Aarav Menon',    'customer@techdrill.dev',   '$2b$10$HmMRMBi1fC6zAySX7FSPEuHY9XQU.494eQulgqgUd0mIKIed/2l1K', 'customer',   'active'),
+('Nisha Rao',      'admin@techdrill.dev',      '$2b$10$HmMRMBi1fC6zAySX7FSPEuHY9XQU.494eQulgqgUd0mIKIed/2l1K', 'admin',      'active'),
+('Ishaan Kapoor',  'superadmin@techdrill.dev', '$2b$10$HmMRMBi1fC6zAySX7FSPEuHY9XQU.494eQulgqgUd0mIKIed/2l1K', 'superadmin', 'active'),
+('Sara Bhat',      'newuser@techdrill.dev',    '$2b$10$HmMRMBi1fC6zAySX7FSPEuHY9XQU.494eQulgqgUd0mIKIed/2l1K', 'customer',   'pending'),
+('Dev Malhotra',   'blocked@techdrill.dev',    '$2b$10$HmMRMBi1fC6zAySX7FSPEuHY9XQU.494eQulgqgUd0mIKIed/2l1K', 'customer',   'blocked');
 
 -- Products (match frontend mocks exactly)
 INSERT INTO products (name, category, price, originalPrice, image, description, stock, badge, targetGroup, reorder_level, sku) VALUES
