@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import PageIntro from '../../components/ui/PageIntro'
 import SectionCard from '../../components/ui/SectionCard'
 import StatCard from '../../components/ui/StatCard'
@@ -32,7 +33,16 @@ function getCampaignAction(status: 'scheduled' | 'live' | 'ended') {
 }
 
 export default function AdminPricingPage() {
-  const { priceHistory, pricingCampaigns, togglePricingCampaign } = useAppState()
+  const {
+    priceHistory,
+    pricingCampaigns,
+    togglePricingCampaign,
+    updateCampaignPrices,
+  } = useAppState()
+  const [campaignDrafts, setCampaignDrafts] = useState<
+    Record<string, { basePrice: string; salePrice: string }>
+  >({})
+  const [feedbackMessage, setFeedbackMessage] = useState('')
   const scheduledCount = pricingCampaigns.filter(
     (campaign) => campaign.status === 'scheduled',
   ).length
@@ -76,49 +86,125 @@ export default function AdminPricingPage() {
         />
       </div>
 
+      {feedbackMessage ? (
+        <StatusBadge tone="accent">{feedbackMessage}</StatusBadge>
+      ) : null}
+
       <div className={styles.splitGrid}>
         <SectionCard
           description="Later this is where create/edit campaign actions and scheduling controls will connect."
           title="Campaigns"
         >
           <div className={styles.pricingGrid}>
-            {pricingCampaigns.map((campaign) => (
-              <article className={styles.pricingCard} key={campaign.id}>
-                <div className={styles.cardHeader}>
-                  <div>
-                    <h3 className={styles.cardTitle}>{campaign.name}</h3>
-                    <p className={styles.cardCopy}>{campaign.productName}</p>
+            {pricingCampaigns.map((campaign) => {
+              const draft = campaignDrafts[campaign.id] ?? {
+                basePrice: `${campaign.basePrice}`,
+                salePrice: `${campaign.salePrice}`,
+              }
+
+              return (
+                <article className={styles.pricingCard} key={campaign.id}>
+                  <div className={styles.cardHeader}>
+                    <div>
+                      <h3 className={styles.cardTitle}>{campaign.name}</h3>
+                      <p className={styles.cardCopy}>{campaign.productName}</p>
+                    </div>
+                    <StatusBadge tone={getCampaignTone(campaign.status)}>
+                      {campaign.status}
+                    </StatusBadge>
                   </div>
-                  <StatusBadge tone={getCampaignTone(campaign.status)}>
-                    {campaign.status}
-                  </StatusBadge>
-                </div>
-                <div className={styles.metricGrid}>
-                  <div className={styles.metricBlock}>
-                    <span className={styles.metricLabel}>Base price</span>
-                    <span className={styles.metricValue}>
-                      {formatCurrency(campaign.basePrice)}
-                    </span>
+                  <div className={styles.metricGrid}>
+                    <label className={styles.editorField}>
+                      <span className={styles.metricLabel}>Base price</span>
+                      <input
+                        className={styles.numberInput}
+                        min="1"
+                        onChange={(event) =>
+                          setCampaignDrafts((currentDrafts) => ({
+                            ...currentDrafts,
+                            [campaign.id]: {
+                              ...draft,
+                              basePrice: event.target.value,
+                            },
+                          }))
+                        }
+                        step="1"
+                        type="number"
+                        value={draft.basePrice}
+                      />
+                    </label>
+                    <label className={styles.editorField}>
+                      <span className={styles.metricLabel}>Sale price</span>
+                      <input
+                        className={styles.numberInput}
+                        min="1"
+                        onChange={(event) =>
+                          setCampaignDrafts((currentDrafts) => ({
+                            ...currentDrafts,
+                            [campaign.id]: {
+                              ...draft,
+                              salePrice: event.target.value,
+                            },
+                          }))
+                        }
+                        step="1"
+                        type="number"
+                        value={draft.salePrice}
+                      />
+                    </label>
                   </div>
-                  <div className={styles.metricBlock}>
-                    <span className={styles.metricLabel}>Sale price</span>
-                    <span className={styles.metricValue}>
-                      {formatCurrency(campaign.salePrice)}
-                    </span>
+                  <p className={styles.cardCopy}>
+                    {formatDate(campaign.startsAt)} to {formatDate(campaign.endsAt)}
+                  </p>
+                  <p className={styles.inlineHint}>
+                    Storefront base: {formatCurrency(Number(draft.basePrice || 0))} •
+                    campaign sale: {formatCurrency(Number(draft.salePrice || 0))}
+                  </p>
+                  <div className={styles.inlineActions}>
+                    <button
+                      className={styles.secondaryButton}
+                      onClick={() => {
+                        const saved = updateCampaignPrices(campaign.id, {
+                          basePrice: Number(draft.basePrice),
+                          salePrice: Number(draft.salePrice),
+                        })
+
+                        if (!saved) {
+                          setFeedbackMessage(
+                            'Use positive values and keep sale price at or below base price.',
+                          )
+                          return
+                        }
+
+                        setCampaignDrafts((currentDrafts) => ({
+                          ...currentDrafts,
+                          [campaign.id]: {
+                            basePrice: `${Number(draft.basePrice)}`,
+                            salePrice: `${Number(draft.salePrice)}`,
+                          },
+                        }))
+                        setFeedbackMessage(`${campaign.name} pricing saved.`)
+                      }}
+                      type="button"
+                    >
+                      Save prices
+                    </button>
+                    <button
+                      className={styles.actionButton}
+                      onClick={() => {
+                        togglePricingCampaign(campaign.id)
+                        setFeedbackMessage(
+                          `${campaign.name} status updated to the next pricing stage.`,
+                        )
+                      }}
+                      type="button"
+                    >
+                      {getCampaignAction(campaign.status)}
+                    </button>
                   </div>
-                </div>
-                <p className={styles.cardCopy}>
-                  {formatDate(campaign.startsAt)} to {formatDate(campaign.endsAt)}
-                </p>
-                <button
-                  className={styles.actionButton}
-                  onClick={() => togglePricingCampaign(campaign.id)}
-                  type="button"
-                >
-                  {getCampaignAction(campaign.status)}
-                </button>
-              </article>
-            ))}
+                </article>
+              )
+            })}
           </div>
         </SectionCard>
 
