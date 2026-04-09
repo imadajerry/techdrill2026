@@ -1,0 +1,698 @@
+/* eslint-disable react-refresh/only-export-components */
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type PropsWithChildren,
+} from 'react'
+import { adminDashboardMock } from '../mocks/adminDashboard'
+import {
+  adminOrders as initialAdminOrders,
+  inventoryItems as initialInventoryItems,
+  managedUsers as initialManagedUsers,
+  priceHistory as initialPriceHistory,
+  pricingCampaigns as initialPricingCampaigns,
+  recentExports as initialRecentExports,
+  reportTemplates,
+} from '../mocks/adminOperations'
+import { initialCartItems } from '../mocks/cart'
+import { customerOrders as initialCustomerOrders } from '../mocks/orders'
+import {
+  catalogProducts,
+  favouriteProducts as initialFavouriteProducts,
+  recommendedProducts as initialRecommendedProducts,
+} from '../mocks/products'
+import type {
+  AdminOrderRecord,
+  ExportRecord,
+  InventoryItem,
+  ManagedUser,
+  PriceHistoryEntry,
+  PricingCampaign,
+  ReportTemplate,
+} from '../types/admin'
+import type { CartItem } from '../types/cart'
+import type { DashboardSummary } from '../types/dashboard'
+import type { CustomerOrder, OrderStatus } from '../types/order'
+import type { Product } from '../types/product'
+
+const sizeOptions = ['UK 7', 'UK 8', 'UK 9', 'UK 10']
+
+type AddToCartResult =
+  | 'added'
+  | 'quantity-updated'
+  | 'max-stock'
+  | 'out-of-stock'
+
+type AppStateContextValue = {
+  addToCart: (productId: string, size: string) => AddToCartResult
+  adjustInventoryReserved: (itemId: string, delta: number) => void
+  adjustInventoryStock: (itemId: string, delta: number) => void
+  advanceAdminOrder: (orderId: string) => OrderStatus | null
+  adminOrders: AdminOrderRecord[]
+  availableSizes: string[]
+  cartCount: number
+  cartItems: CartItem[]
+  customerOrders: CustomerOrder[]
+  dashboardSummary: DashboardSummary
+  downloadExport: (exportId: string) => ExportRecord | null
+  favouriteIds: string[]
+  favouriteProducts: Product[]
+  featuredProducts: Product[]
+  generateReport: (templateId: string, requestedBy: string) => ExportRecord | null
+  getCartQuantity: (productId: string) => number
+  inventoryItems: InventoryItem[]
+  isFavourite: (productId: string) => boolean
+  managedUsers: ManagedUser[]
+  priceHistory: PriceHistoryEntry[]
+  pricingCampaigns: PricingCampaign[]
+  products: Product[]
+  recentExports: ExportRecord[]
+  recommendedProducts: Product[]
+  reportTemplates: ReportTemplate[]
+  toggleFavourite: (productId: string) => boolean
+  togglePricingCampaign: (campaignId: string) => PricingCampaign['status'] | null
+  toggleUserStatus: (userId: string) => ManagedUser['status'] | null
+  updateCartItemQuantity: (itemId: string, delta: number) => void
+  removeCartItem: (itemId: string) => void
+}
+
+const AppStateContext = createContext<AppStateContextValue | undefined>(undefined)
+
+function cloneProduct(product: Product): Product {
+  return { ...product }
+}
+
+function cloneCartItem(item: CartItem): CartItem {
+  return {
+    ...item,
+    product: cloneProduct(item.product),
+  }
+}
+
+function cloneCustomerOrder(order: CustomerOrder): CustomerOrder {
+  return {
+    ...order,
+    items: order.items.map((item) => ({
+      ...item,
+      product: cloneProduct(item.product),
+    })),
+  }
+}
+
+function cloneInventoryItem(item: InventoryItem): InventoryItem {
+  return {
+    ...item,
+  }
+}
+
+function cloneAdminOrder(order: AdminOrderRecord): AdminOrderRecord {
+  return { ...order }
+}
+
+function cloneManagedUser(user: ManagedUser): ManagedUser {
+  return { ...user }
+}
+
+function cloneReport(record: ExportRecord): ExportRecord {
+  return { ...record }
+}
+
+function cloneCampaign(campaign: PricingCampaign): PricingCampaign {
+  return { ...campaign }
+}
+
+function clonePriceHistoryEntry(entry: PriceHistoryEntry): PriceHistoryEntry {
+  return { ...entry }
+}
+
+function getProductById(products: Product[], productId: string) {
+  return products.find((product) => product.id === productId) ?? null
+}
+
+function getProductByName(products: Product[], productName: string) {
+  return products.find((product) => product.name === productName) ?? null
+}
+
+function getNextOrderStatus(status: OrderStatus): OrderStatus | null {
+  if (status === 'placed') {
+    return 'accepted'
+  }
+
+  if (status === 'accepted') {
+    return 'processed'
+  }
+
+  if (status === 'processed') {
+    return 'dispatched'
+  }
+
+  if (status === 'dispatched') {
+    return 'delivered'
+  }
+
+  return null
+}
+
+function getNextUserStatus(
+  status: ManagedUser['status'],
+): ManagedUser['status'] {
+  if (status === 'pending' || status === 'blocked') {
+    return 'active'
+  }
+
+  return 'blocked'
+}
+
+function cloneProducts(products: Product[]) {
+  return products.map(cloneProduct)
+}
+
+function createDashboardSummary(
+  adminOrders: AdminOrderRecord[],
+  inventoryItems: InventoryItem[],
+): DashboardSummary {
+  const orderCounts = [
+    'placed',
+    'accepted',
+    'rejected',
+    'processed',
+    'dispatched',
+    'delivered',
+  ].map((status) => ({
+    label: status[0].toUpperCase() + status.slice(1),
+    value: adminOrders.filter((order) => order.status === status).length,
+  }))
+
+  const todaysCollection = adminOrders
+    .filter((order) => order.paymentStatus === 'paid')
+    .reduce((sum, order) => sum + order.total, 0)
+
+  const topCustomer =
+    adminOrders
+      .filter((order) => order.paymentStatus === 'paid')
+      .sort((left, right) => right.total - left.total)[0]?.customerName ??
+    adminDashboardMock.topCustomer
+
+  const lowStockAlerts = inventoryItems
+    .filter((item) => item.stock <= item.reorderLevel)
+    .map((item) => ({
+      name: item.name,
+      stock: item.stock,
+    }))
+
+  return {
+    todaysCollection,
+    topCustomer,
+    orderCounts,
+    trendingProducts: adminDashboardMock.trendingProducts,
+    lowStockAlerts:
+      lowStockAlerts.length > 0
+        ? lowStockAlerts
+        : adminDashboardMock.lowStockAlerts,
+  }
+}
+
+export function AppStateProvider({ children }: PropsWithChildren) {
+  const [products, setProducts] = useState<Product[]>(() =>
+    cloneProducts(catalogProducts),
+  )
+  const [cartItems, setCartItems] = useState<CartItem[]>(() =>
+    initialCartItems.map(cloneCartItem),
+  )
+  const [favouriteIds, setFavouriteIds] = useState<string[]>(() =>
+    initialFavouriteProducts.map((product) => product.id),
+  )
+  const [customerOrders, setCustomerOrders] = useState<CustomerOrder[]>(() =>
+    initialCustomerOrders.map(cloneCustomerOrder),
+  )
+  const [adminOrders, setAdminOrders] = useState<AdminOrderRecord[]>(() =>
+    initialAdminOrders.map(cloneAdminOrder),
+  )
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>(() =>
+    initialInventoryItems.map(cloneInventoryItem),
+  )
+  const [managedUsers, setManagedUsers] = useState<ManagedUser[]>(() =>
+    initialManagedUsers.map(cloneManagedUser),
+  )
+  const [recentExports, setRecentExports] = useState<ExportRecord[]>(() =>
+    initialRecentExports.map(cloneReport),
+  )
+  const [pricingCampaigns, setPricingCampaigns] = useState<PricingCampaign[]>(() =>
+    initialPricingCampaigns.map(cloneCampaign),
+  )
+  const [priceHistory, setPriceHistory] = useState<PriceHistoryEntry[]>(() =>
+    initialPriceHistory.map(clonePriceHistoryEntry),
+  )
+  const reportTimers = useRef<number[]>([])
+
+  useEffect(() => {
+    const timers = reportTimers
+
+    return () => {
+      const pendingTimers = timers.current
+
+      pendingTimers.forEach((timerId) => {
+        window.clearTimeout(timerId)
+      })
+    }
+  }, [])
+
+  function syncProductReferences(updatedProduct: Product) {
+    setProducts((currentProducts) =>
+      currentProducts.map((product) =>
+        product.id === updatedProduct.id ? updatedProduct : product,
+      ),
+    )
+    setCartItems((currentItems) =>
+      currentItems.map((item) =>
+        item.product.id === updatedProduct.id
+          ? {
+              ...item,
+              product: updatedProduct,
+            }
+          : item,
+      ),
+    )
+    setCustomerOrders((currentOrders) =>
+      currentOrders.map((order) => ({
+        ...order,
+        items: order.items.map((item) =>
+          item.product.id === updatedProduct.id
+            ? {
+                ...item,
+                product: updatedProduct,
+              }
+            : item,
+        ),
+      })),
+    )
+  }
+
+  function addToCart(productId: string, size: string): AddToCartResult {
+    const selectedProduct = getProductById(products, productId)
+
+    if (!selectedProduct || selectedProduct.stock <= 0) {
+      return 'out-of-stock'
+    }
+
+    let outcome: AddToCartResult = 'added'
+
+    setCartItems((currentItems) => {
+      const existingItem = currentItems.find(
+        (item) => item.product.id === productId && item.size === size,
+      )
+
+      if (!existingItem) {
+        return [
+          ...currentItems,
+          {
+            id: `cart-${productId}-${size}-${Date.now()}`,
+            product: selectedProduct,
+            quantity: 1,
+            size,
+          },
+        ]
+      }
+
+      if (existingItem.quantity >= selectedProduct.stock) {
+        outcome = 'max-stock'
+        return currentItems
+      }
+
+      outcome = 'quantity-updated'
+
+      return currentItems.map((item) =>
+        item.id === existingItem.id
+          ? {
+              ...item,
+              quantity: item.quantity + 1,
+            }
+          : item,
+      )
+    })
+
+    return outcome
+  }
+
+  function toggleFavourite(productId: string) {
+    let nextFavourite = false
+
+    setFavouriteIds((currentIds) => {
+      if (currentIds.includes(productId)) {
+        nextFavourite = false
+        return currentIds.filter((id) => id !== productId)
+      }
+
+      nextFavourite = true
+      return [...currentIds, productId]
+    })
+
+    return nextFavourite
+  }
+
+  function updateCartItemQuantity(itemId: string, delta: number) {
+    setCartItems((currentItems) =>
+      currentItems.map((item) => {
+        if (item.id !== itemId) {
+          return item
+        }
+
+        return {
+          ...item,
+          quantity: Math.max(
+            1,
+            Math.min(item.product.stock, item.quantity + delta),
+          ),
+        }
+      }),
+    )
+  }
+
+  function removeCartItem(itemId: string) {
+    setCartItems((currentItems) =>
+      currentItems.filter((item) => item.id !== itemId),
+    )
+  }
+
+  function advanceAdminOrder(orderId: string) {
+    let nextStatus: OrderStatus | null = null
+
+    setAdminOrders((currentOrders) =>
+      currentOrders.map((order) => {
+        if (order.id !== orderId) {
+          return order
+        }
+
+        nextStatus = getNextOrderStatus(order.status)
+
+        if (!nextStatus) {
+          return order
+        }
+
+        return {
+          ...order,
+          paymentStatus:
+            nextStatus === 'delivered' && order.paymentStatus === 'pending'
+              ? 'paid'
+              : order.paymentStatus,
+          status: nextStatus,
+        }
+      }),
+    )
+
+    if (!nextStatus) {
+      return null
+    }
+
+    setCustomerOrders((currentOrders) =>
+      currentOrders.map((order) =>
+        order.id === orderId
+          ? {
+              ...order,
+              status: nextStatus!,
+              trackingNote:
+                nextStatus === 'accepted'
+                  ? 'The operations team accepted the order and moved it into the live queue.'
+                  : nextStatus === 'processed'
+                    ? 'Warehouse QC is complete and the shipment is moving toward dispatch.'
+                    : nextStatus === 'dispatched'
+                      ? 'The parcel left the hub and is now in the courier network.'
+                      : 'The order reached the customer and delivery has been confirmed.'
+            }
+          : order,
+      ),
+    )
+
+    return nextStatus
+  }
+
+  function toggleUserStatus(userId: string) {
+    let nextStatus: ManagedUser['status'] | null = null
+
+    setManagedUsers((currentUsers) =>
+      currentUsers.map((user) => {
+        if (user.id !== userId) {
+          return user
+        }
+
+        nextStatus = getNextUserStatus(user.status)
+
+        return {
+          ...user,
+          status: nextStatus,
+        }
+      }),
+    )
+
+    return nextStatus
+  }
+
+  function adjustInventoryStock(itemId: string, delta: number) {
+    let updatedProduct: Product | null = null
+
+    setInventoryItems((currentItems) =>
+      currentItems.map((item) => {
+        if (item.id !== itemId) {
+          return item
+        }
+
+        const stock = Math.max(0, item.stock + delta)
+
+        updatedProduct = {
+          ...item,
+          stock,
+        }
+
+        return {
+          ...item,
+          reservedStock: Math.min(item.reservedStock, stock),
+          stock,
+        }
+      }),
+    )
+
+    if (updatedProduct) {
+      syncProductReferences(updatedProduct)
+    }
+  }
+
+  function adjustInventoryReserved(itemId: string, delta: number) {
+    setInventoryItems((currentItems) =>
+      currentItems.map((item) => {
+        if (item.id !== itemId) {
+          return item
+        }
+
+        return {
+          ...item,
+          reservedStock: Math.max(
+            0,
+            Math.min(item.stock, item.reservedStock + delta),
+          ),
+        }
+      }),
+    )
+  }
+
+  function togglePricingCampaign(campaignId: string) {
+    const currentCampaign = pricingCampaigns.find(
+      (campaign) => campaign.id === campaignId,
+    )
+
+    if (!currentCampaign) {
+      return null
+    }
+
+    const resolvedStatus: PricingCampaign['status'] =
+      currentCampaign.status === 'scheduled'
+        ? 'live'
+        : currentCampaign.status === 'live'
+          ? 'ended'
+          : 'scheduled'
+    const resolvedCampaign = {
+      ...currentCampaign,
+      status: resolvedStatus,
+    }
+    let updatedProduct: Product | null = null
+
+    setPricingCampaigns((currentCampaigns) =>
+      currentCampaigns.map((campaign) =>
+        campaign.id === campaignId ? resolvedCampaign : campaign,
+      ),
+    )
+
+    const baselineProduct = getProductByName(
+      catalogProducts,
+      resolvedCampaign.productName,
+    )
+    const currentProduct = getProductByName(products, resolvedCampaign.productName)
+
+    if (baselineProduct && currentProduct) {
+      if (resolvedStatus === 'live') {
+        updatedProduct = {
+          ...currentProduct,
+          originalPrice: resolvedCampaign.basePrice,
+          price: resolvedCampaign.salePrice,
+        }
+      }
+
+      if (resolvedStatus === 'ended') {
+        updatedProduct = {
+          ...currentProduct,
+          originalPrice: baselineProduct.originalPrice,
+          price: resolvedCampaign.basePrice,
+        }
+      }
+
+      if (resolvedStatus === 'scheduled') {
+        updatedProduct = {
+          ...currentProduct,
+          originalPrice: baselineProduct.originalPrice,
+          price: baselineProduct.price,
+        }
+      }
+    }
+
+    if (updatedProduct) {
+      syncProductReferences(updatedProduct)
+      setInventoryItems((currentItems) =>
+        currentItems.map((item) =>
+          item.name === updatedProduct!.name
+            ? {
+                ...item,
+                originalPrice: updatedProduct!.originalPrice,
+                price: updatedProduct!.price,
+              }
+            : item,
+        ),
+      )
+    }
+
+    setPriceHistory((currentHistory) => [
+      {
+        amount:
+          resolvedStatus === 'live'
+            ? resolvedCampaign.salePrice
+            : resolvedCampaign.basePrice,
+        effectiveAt: new Date().toISOString(),
+        id: `price-${Date.now()}`,
+        note:
+          resolvedStatus === 'live'
+            ? `${resolvedCampaign.name} launched.`
+            : resolvedStatus === 'ended'
+              ? `${resolvedCampaign.name} ended.`
+              : `${resolvedCampaign.name} rescheduled.`,
+        productName: resolvedCampaign.productName,
+      },
+      ...currentHistory,
+    ])
+
+    return resolvedStatus
+  }
+
+  function generateReport(templateId: string, requestedBy: string) {
+    const template = reportTemplates.find((item) => item.id === templateId)
+
+    if (!template) {
+      return null
+    }
+
+    const exportRecord: ExportRecord = {
+      format: template.format,
+      generatedAt: new Date().toISOString(),
+      id: `export-${Date.now()}`,
+      requestedBy,
+      status: 'processing',
+      title: template.title,
+    }
+
+    setRecentExports((currentExports) => [exportRecord, ...currentExports])
+
+    const timerId = window.setTimeout(() => {
+      setRecentExports((currentExports) =>
+        currentExports.map((item) =>
+          item.id === exportRecord.id
+            ? {
+                ...item,
+                generatedAt: new Date().toISOString(),
+                status: 'ready',
+              }
+            : item,
+        ),
+      )
+    }, 1400)
+
+    reportTimers.current.push(timerId)
+
+    return exportRecord
+  }
+
+  function downloadExport(exportId: string) {
+    return recentExports.find((item) => item.id === exportId) ?? null
+  }
+
+  const favouriteProducts = products.filter((product) =>
+    favouriteIds.includes(product.id),
+  )
+  const featuredProducts = products.slice(0, 3)
+  const recommendedProducts = products.filter((product) =>
+    initialRecommendedProducts.some((item) => item.id === product.id),
+  )
+  const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
+  const dashboardSummary = createDashboardSummary(adminOrders, inventoryItems)
+
+  return (
+    <AppStateContext.Provider
+      value={{
+        addToCart,
+        adjustInventoryReserved,
+        adjustInventoryStock,
+        advanceAdminOrder,
+        adminOrders,
+        availableSizes: sizeOptions,
+        cartCount,
+        cartItems,
+        customerOrders,
+        dashboardSummary,
+        downloadExport,
+        favouriteIds,
+        favouriteProducts,
+        featuredProducts,
+        generateReport,
+        getCartQuantity: (productId: string) =>
+          cartItems
+            .filter((item) => item.product.id === productId)
+            .reduce((sum, item) => sum + item.quantity, 0),
+        inventoryItems,
+        isFavourite: (productId: string) => favouriteIds.includes(productId),
+        managedUsers,
+        priceHistory,
+        pricingCampaigns,
+        products,
+        recentExports,
+        recommendedProducts,
+        reportTemplates,
+        toggleFavourite,
+        togglePricingCampaign,
+        toggleUserStatus,
+        updateCartItemQuantity,
+        removeCartItem,
+      }}
+    >
+      {children}
+    </AppStateContext.Provider>
+  )
+}
+
+export function useAppState() {
+  const context = useContext(AppStateContext)
+
+  if (!context) {
+    throw new Error('useAppState must be used within an AppStateProvider.')
+  }
+
+  return context
+}
