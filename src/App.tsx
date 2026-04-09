@@ -1,13 +1,6 @@
 import './App.css'
-import LoginForm from './components/LoginForm'
+import AppRouter from './routes'
 
-function App() {
-
-  return (
-    <>
-      <LoginForm />
-    </>
-  )
+export default function App() {
+  return <AppRouter />
 }
-
-export default App
