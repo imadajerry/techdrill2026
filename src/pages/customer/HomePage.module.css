@@ -1,0 +1,143 @@
+.hero {
+  align-items: end;
+  background:
+    radial-gradient(circle at top right, rgba(200, 87, 43, 0.22), transparent 28%),
+    linear-gradient(145deg, #f8f1e6 0%, #f1e6d8 58%, #ead9c2 100%);
+  border-radius: 36px;
+  display: grid;
+  gap: 28px;
+  grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+  overflow: hidden;
+  padding: clamp(28px, 5vw, 52px);
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1rem;
+  height: 100%;
+}
+
+.eyebrow {
+  color: var(--color-accent);
+  font-size: 0.84rem;
+  letter-spacing: 0.14em;
+  margin: 0 0 12px;
+  text-transform: uppercase;
+}
+
+.title {
+  color: var(--color-text-strong);
+  font-family: var(--font-display);
+  font-size: clamp(3rem, 8vw, 6.4rem);
+  line-height: 0.9;
+  margin: 0;
+  /* max-width: 7ch; */
+}
+
+.copy {
+  color: var(--color-text-muted);
+  font-size: 1rem;
+  line-height: 1.75;
+  margin: 18px 0 0;
+  max-width: 52ch;
+}
+
+.ctaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.primaryCta,
+.secondaryCta {
+  border-radius: 999px;
+  font-weight: 600;
+  padding: 14px 18px;
+  text-decoration: none;
+}
+
+.primaryCta {
+  background: var(--color-text-strong);
+  color: white;
+}
+
+.secondaryCta {
+  border: 1px solid rgba(32, 25, 19, 0.16);
+  color: var(--color-text-strong);
+}
+
+.heroImage {
+  border-radius: 28px;
+  display: block;
+  min-height: 300px;
+  object-fit: cover;
+  width: 100%;
+}
+
+.section {
+  margin-top: 32px;
+}
+
+.sectionHeader {
+  align-items: end;
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.sectionTitle {
+  color: var(--color-text-strong);
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 3vw, 3rem);
+  margin: 0;
+}
+
+.sectionCopy {
+  color: var(--color-text-muted);
+  margin: 0;
+  max-width: 50ch;
+}
+
+.grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.stats {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin-top: 32px;
+}
+
+.statCard {
+  background: white;
+  border: 1px solid rgba(123, 104, 82, 0.12);
+  border-radius: 24px;
+  padding: 22px;
+}
+
+.statLabel {
+  color: var(--color-text-muted);
+  font-size: 0.86rem;
+  margin: 0 0 8px;
+  text-transform: uppercase;
+}
+
+.statValue {
+  color: var(--color-text-strong);
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  margin: 0;
+}
+
+@media (max-width: 880px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+}
