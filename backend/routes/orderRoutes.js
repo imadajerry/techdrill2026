@@ -6,6 +6,7 @@ const requireRole = require('../middleware/roleMiddleware');
 
 // Customer routes
 orderRoutes.post('/orders', verifyToken, orderController.placeOrder);
+orderRoutes.post('/orders/razorpay-order', verifyToken, orderController.createRazorpayOrder);
 orderRoutes.get('/orders/mine', verifyToken, orderController.getUserOrders);
 
 // Admin routes
