@@ -71,15 +71,29 @@ const getUsers = (req, res) => {
 const updateUserStatus = (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
+  const requesterRole = req.user?.role;
 
   const validStatuses = ['active', 'blocked', 'pending'];
   if (!validStatuses.includes(status)) {
     return fail(res, 'Invalid status. Must be active, blocked, or pending.');
   }
 
-  User.updateUserStatus(id, status, (err) => {
+  User.getUserById(id, (err, results) => {
     if (err) return fail(res, 'Database error.', 500);
-    return ok(res, { id: String(id), status }, 'User status updated.');
+    if (!results || results.length === 0) return fail(res, 'User not found.', 404);
+
+    const targetRole = results[0].role;
+
+    if (requesterRole === 'admin') {
+      if (targetRole !== 'customer') {
+        return fail(res, 'Permission denied. Admins can only manage customers.', 403);
+      }
+    }
+
+    User.updateUserStatus(id, status, (updateErr) => {
+      if (updateErr) return fail(res, 'Database error.', 500);
+      return ok(res, { id: String(id), status }, 'User status updated.');
+    });
   });
 };
 
