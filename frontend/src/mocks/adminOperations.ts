@@ -140,14 +140,14 @@ export const managedUsers: ManagedUser[] = [
 export const reportTemplates: ReportTemplate[] = [
   {
     description: 'Status counts with revenue totals for the selected range.',
-    format: 'xlsx',
+    format: 'csv',
     id: 'report-1',
     periodLabel: 'Today to date',
     title: 'Orders by status',
   },
   {
     description: 'Payment settlement summary grouped by gateway and day.',
-    format: 'xlsx',
+    format: 'csv',
     id: 'report-2',
     periodLabel: 'Last 7 days',
     title: 'Payment collection',
@@ -163,7 +163,7 @@ export const reportTemplates: ReportTemplate[] = [
 
 export const recentExports: ExportRecord[] = [
   {
-    format: 'xlsx',
+    format: 'csv',
     generatedAt: '2026-04-09T10:12:00.000Z',
     id: 'export-1',
     requestedBy: 'Nisha Rao',
@@ -179,7 +179,7 @@ export const recentExports: ExportRecord[] = [
     title: 'Executive dashboard brief',
   },
   {
-    format: 'xlsx',
+    format: 'csv',
     generatedAt: '2026-04-09T09:30:00.000Z',
     id: 'export-3',
     requestedBy: 'Nisha Rao',

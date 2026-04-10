@@ -635,8 +635,6 @@ export function AppStateProvider({ children }: PropsWithChildren) {
     setAdminOrders((currentOrders) =>
       currentOrders.map((order) => {
         if (order.id !== orderId) return order
-        nextStatus = getNextOrderStatus(order.status)
-        if (!nextStatus) return order
         return {
           ...order,
           paymentStatus:
@@ -647,8 +645,6 @@ export function AppStateProvider({ children }: PropsWithChildren) {
         }
       }),
     )
-
-    if (!nextStatus) return null
 
     setCustomerOrders((currentOrders) =>
       currentOrders.map((order) =>
@@ -688,7 +684,6 @@ export function AppStateProvider({ children }: PropsWithChildren) {
     setManagedUsers((currentUsers) =>
       currentUsers.map((u) => {
         if (u.id !== userId) return u
-        nextStatus = getNextUserStatus(u.status)
         return { ...u, status: nextStatus }
       }),
     )
@@ -713,8 +708,6 @@ export function AppStateProvider({ children }: PropsWithChildren) {
     setInventoryItems((currentItems) =>
       currentItems.map((item) => {
         if (item.id !== itemId) return item
-        newStock = Math.max(0, item.stock + delta)
-        updatedProduct = { ...item, stock: newStock }
         return {
           ...item,
           reservedStock: Math.min(item.reservedStock, newStock),
@@ -1016,17 +1009,77 @@ export function AppStateProvider({ children }: PropsWithChildren) {
 
     setRecentExports((currentExports) => [exportRecord, ...currentExports])
 
-    const timerId = window.setTimeout(() => {
-      setRecentExports((currentExports) =>
-        currentExports.map((item) =>
-          item.id === exportRecord.id
-            ? { ...item, generatedAt: new Date().toISOString(), status: 'ready' }
-            : item,
-        ),
-      )
-    }, 1400)
+    if (USE_API && isAuthenticated) {
+      Promise.resolve().then(async () => {
+        try {
+          let rawData: unknown = null
+          if (templateId === 'report-1') {
+            const res = await adminApi.getOrderReport()
+            if (res.success) rawData = res.data
+          } else if (templateId === 'report-2') {
+            const res = await adminApi.getPaymentReport()
+            if (res.success) rawData = res.data
+          } else {
+            const res = await adminApi.getDashboard()
+            if (res.success) rawData = res.data
+          }
 
-    reportTimers.current.push(timerId)
+          let jsonToConvert: any[] = []
+          if (rawData && typeof rawData === 'object') {
+            if ('summary' in rawData && Array.isArray((rawData as any).summary)) {
+              jsonToConvert = (rawData as any).summary
+            } else if ('orderCounts' in rawData && Array.isArray((rawData as any).orderCounts)) {
+              jsonToConvert = (rawData as any).orderCounts
+            } else if (Array.isArray(rawData)) {
+              jsonToConvert = rawData
+            } else {
+              jsonToConvert = [rawData]
+            }
+          }
+
+          let csvStr = ''
+          if (jsonToConvert.length > 0) {
+            const keys = Object.keys(jsonToConvert[0])
+            csvStr = keys.join(',') + '\n' + jsonToConvert.map(row => keys.map(k => `"${row[k]}"`).join(',')).join('\n')
+          } else {
+            csvStr = 'No data'
+          }
+
+          const blob = new Blob([csvStr], { type: 'text/csv;charset=utf-8;' })
+          const downloadUrl = URL.createObjectURL(blob)
+
+          setRecentExports((currentExports) =>
+            currentExports.map((item) =>
+              item.id === exportRecord.id
+                ? { ...item, generatedAt: new Date().toISOString(), status: 'ready', downloadUrl }
+                : item,
+            ),
+          )
+        } catch (err) {
+          console.warn('Failed to generate report via API', err)
+          setRecentExports((currentExports) =>
+            currentExports.map((item) =>
+              item.id === exportRecord.id
+                ? { ...item, generatedAt: new Date().toISOString(), status: 'ready' }
+                : item,
+            ),
+          )
+        }
+      })
+    } else {
+      const timerId = window.setTimeout(() => {
+        setRecentExports((currentExports) =>
+          currentExports.map((item) =>
+            item.id === exportRecord.id
+              ? { ...item, generatedAt: new Date().toISOString(), status: 'ready' }
+              : item,
+          ),
+        )
+      }, 1400)
+
+      reportTimers.current.push(timerId)
+    }
+
     return exportRecord
   }
 

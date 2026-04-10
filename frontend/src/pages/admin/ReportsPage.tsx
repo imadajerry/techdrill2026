@@ -124,6 +124,14 @@ export default function AdminReportsPage() {
                           setFeedbackMessage(
                             `Prepared ${exportRecord.title} for download.`,
                           )
+                          if (exportRecord.downloadUrl) {
+                            const a = document.createElement('a')
+                            a.href = exportRecord.downloadUrl
+                            a.download = `${exportRecord.title.replace(/\s+/g, '_')}.${exportRecord.format}`
+                            document.body.appendChild(a)
+                            a.click()
+                            document.body.removeChild(a)
+                          }
                         }
                       }}
                       type="button"
