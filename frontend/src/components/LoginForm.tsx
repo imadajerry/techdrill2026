@@ -12,18 +12,33 @@ const LoginForm = () => {
     email: "",
     password: ""
   });
+  const [passwordError, setPasswordError] = useState("");
 
   // ✅ Handle change
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: value
     });
+
+    if (name === "password") {
+      if (value.length < 8) {
+        setPasswordError("Password must be at least 8 characters long");
+      } else {
+        setPasswordError("");
+      }
+    }
   };
 
   // ✅ Handle submit
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    if (passwordError) {
+      alert("Please fix validation errors before submitting");
+      return;
+    }
 
     try {
       const res = await axios.post(
@@ -66,6 +81,11 @@ const LoginForm = () => {
           value={formData.password}
           onChange={handleChange}
         />
+        {passwordError && (
+          <p style={{ color: "red", fontSize: "0.8rem", marginTop: "4px" }}>
+            {passwordError}
+          </p>
+        )}
 
         <button type="submit">Login</button>
       </form>
