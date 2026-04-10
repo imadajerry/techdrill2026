@@ -527,10 +527,23 @@ export function AppStateProvider({ children }: PropsWithChildren) {
       )
     })
 
-    // Fire-and-forget API call
+    // API call with rollback on failure
     if (USE_API && isAuthenticated) {
       cartApi.addToCart(productId, size, 1, selectedProduct.price).catch(() => {
-        console.warn('Failed to sync cart addition to API')
+        console.warn('Failed to sync cart addition to API, rolling back')
+        // Rollback: remove the item we just added or decrement quantity
+        setCartItems((currentItems) => {
+          const item = currentItems.find(
+            (i) => i.product.id === productId && i.size === size,
+          )
+          if (!item) return currentItems
+          if (item.quantity <= 1) {
+            return currentItems.filter((i) => i.id !== item.id)
+          }
+          return currentItems.map((i) =>
+            i.id === item.id ? { ...i, quantity: i.quantity - 1 } : i,
+          )
+        })
       })
     }
 
@@ -538,32 +551,39 @@ export function AppStateProvider({ children }: PropsWithChildren) {
   }
 
   function toggleFavourite(productId: string) {
-    let nextFavourite = false
+    // Compute the decision BEFORE React batches the state update
+    const isCurrentlyFavourite = favouriteIds.includes(productId)
+    const willBeFavourite = !isCurrentlyFavourite
 
+    // Optimistic UI update
     setFavouriteIds((currentIds) => {
-      if (currentIds.includes(productId)) {
-        nextFavourite = false
+      if (isCurrentlyFavourite) {
         return currentIds.filter((id) => id !== productId)
       }
-
-      nextFavourite = true
       return [...currentIds, productId]
     })
 
-    // Fire-and-forget API call
+    // API call with rollback on failure
     if (USE_API && isAuthenticated) {
-      if (nextFavourite) {
-        favouritesApi.addFavourite(productId).catch(() => {
-          console.warn('Failed to sync favourite to API')
+      const apiCall = willBeFavourite
+        ? favouritesApi.addFavourite(productId)
+        : favouritesApi.removeFavourite(productId)
+
+      apiCall.catch(() => {
+        console.warn('Failed to sync favourite to API, rolling back')
+        // Rollback: revert the optimistic update
+        setFavouriteIds((currentIds) => {
+          if (willBeFavourite) {
+            // We added it optimistically, remove it
+            return currentIds.filter((id) => id !== productId)
+          }
+          // We removed it optimistically, add it back
+          return [...currentIds, productId]
         })
-      } else {
-        favouritesApi.removeFavourite(productId).catch(() => {
-          console.warn('Failed to sync favourite removal to API')
-        })
-      }
+      })
     }
 
-    return nextFavourite
+    return willBeFavourite
   }
 
   function updateCartItemQuantity(itemId: string, delta: number) {
