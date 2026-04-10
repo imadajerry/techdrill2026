@@ -875,6 +875,11 @@ export function AppStateProvider({ children }: PropsWithChildren) {
         total_amount: total,
         payment_method: input.paymentMethod,
         shipping_address: normalizedAddress,
+        ...(input.razorpayDetails && {
+          razorpay_order_id: input.razorpayDetails.razorpay_order_id,
+          razorpay_payment_id: input.razorpayDetails.razorpay_payment_id,
+          razorpay_signature: input.razorpayDetails.razorpay_signature,
+        }),
       }
 
       ordersApi.placeOrder(apiInput).catch(() => {
