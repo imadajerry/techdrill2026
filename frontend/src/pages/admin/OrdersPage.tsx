@@ -56,7 +56,7 @@ function getNextAction(status: OrderStatus) {
 }
 
 export default function AdminOrdersPage() {
-  const { adminOrders, advanceAdminOrder } = useAppState()
+  const { adminOrders, advanceAdminOrder, rejectAdminOrder } = useAppState()
   const [selectedStatus, setSelectedStatus] = useState<'all' | OrderStatus>('all')
 
   const filteredOrders =
@@ -150,13 +150,29 @@ export default function AdminOrdersPage() {
                   {order.paymentStatus}
                 </StatusBadge>
                 {getNextAction(order.status) ? (
-                  <button
-                    className={styles.actionButton}
-                    onClick={() => advanceAdminOrder(order.id)}
-                    type="button"
-                  >
-                    {getNextAction(order.status)}
-                  </button>
+                  <>
+                    <button
+                      className={styles.actionButton}
+                      onClick={() => advanceAdminOrder(order.id)}
+                      type="button"
+                    >
+                      {getNextAction(order.status)}
+                    </button>
+                    {order.status !== 'rejected' && order.status !== 'delivered' && (
+                      <button
+                        className={styles.secondaryButton}
+                        onClick={() => {
+                          if (window.confirm('Are you sure you want to reject this order?')) {
+                            rejectAdminOrder(order.id)
+                          }
+                        }}
+                        type="button"
+                        style={{ borderColor: '#c82020', color: '#c82020' }}
+                      >
+                        Reject
+                      </button>
+                    )}
+                  </>
                 ) : (
                   <StatusBadge tone="neutral">No pending action</StatusBadge>
                 )}

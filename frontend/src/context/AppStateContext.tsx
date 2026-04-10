@@ -111,6 +111,7 @@ type AppStateContextValue = {
   updateCartItemQuantity: (itemId: string, delta: number) => void
   updateInventoryBasePrice: (itemId: string, nextPrice: number) => boolean
   removeCartItem: (itemId: string) => void
+  rejectAdminOrder: (orderId: string) => OrderStatus | null
   adminAddProduct: (product: Omit<InventoryItem, 'id'>) => Promise<boolean>
   adminUpdateProduct: (id: string, product: Partial<InventoryItem>) => Promise<boolean>
   adminDeleteProduct: (id: string) => Promise<boolean>
@@ -675,6 +676,43 @@ export function AppStateProvider({ children }: PropsWithChildren) {
     return nextStatus
   }
 
+  function rejectAdminOrder(orderId: string) {
+    const currentOrder = adminOrders.find((order) => order.id === orderId)
+    if (!currentOrder) return null
+
+    if (currentOrder.status === 'rejected' || currentOrder.status === 'delivered') return null
+
+    setAdminOrders((currentOrders) =>
+      currentOrders.map((order) => {
+        if (order.id !== orderId) return order
+        return {
+          ...order,
+          status: 'rejected',
+        }
+      }),
+    )
+
+    setCustomerOrders((currentOrders) =>
+      currentOrders.map((order) =>
+        order.id === orderId
+          ? {
+              ...order,
+              status: 'rejected',
+              trackingNote: 'The order was rejected by the operations team.',
+            }
+          : order,
+      ),
+    )
+
+    if (USE_API && isAuthenticated) {
+      adminApi.updateOrderStatus(orderId, 'rejected').catch(() => {
+        console.warn('Failed to sync order rejection to API')
+      })
+    }
+
+    return 'rejected' as OrderStatus
+  }
+
   function toggleUserStatus(userId: string) {
     const currentUser = managedUsers.find((u) => u.id === userId)
     if (!currentUser) return null
@@ -1042,10 +1080,35 @@ export function AppStateProvider({ children }: PropsWithChildren) {
             const keys = Object.keys(jsonToConvert[0])
             csvStr = keys.join(',') + '\n' + jsonToConvert.map(row => keys.map(k => `"${row[k]}"`).join(',')).join('\n')
           } else {
-            csvStr = 'No data'
+            csvStr = '"Message"\n"No data available for this report"'
           }
 
-          const blob = new Blob([csvStr], { type: 'text/csv;charset=utf-8;' })
+          let blob: Blob
+          
+          if (template.format === 'pdf') {
+            const { jsPDF } = await import('jspdf')
+            const autoTable = (await import('jspdf-autotable')).default
+
+            const doc = new jsPDF()
+            doc.text(template.title, 14, 15)
+            
+            if (jsonToConvert.length > 0) {
+              const keys = Object.keys(jsonToConvert[0])
+              const rows = jsonToConvert.map(row => keys.map(k => String(row[k])))
+              autoTable(doc, {
+                head: [keys],
+                body: rows,
+                startY: 20,
+              })
+            } else {
+              doc.text('No data available for this report', 14, 25)
+            }
+            
+            blob = doc.output('blob')
+          } else {
+            blob = new Blob([csvStr], { type: 'text/csv;charset=utf-8;' })
+          }
+
           const downloadUrl = URL.createObjectURL(blob)
 
           setRecentExports((currentExports) =>
@@ -1228,6 +1291,7 @@ export function AppStateProvider({ children }: PropsWithChildren) {
         adminAddProduct,
         adminUpdateProduct,
         adminDeleteProduct,
+        rejectAdminOrder,
       }}
     >
       {children}
