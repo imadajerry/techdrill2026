@@ -14,10 +14,13 @@ const getSmartRecommendations = (req, res) => {
       JOIN products pr ON c.product_id = pr.id
       WHERE c.user_id = ?
     )
+    AND p.id NOT IN (
+      SELECT product_id FROM cart WHERE user_id = ?
+    )
     LIMIT 10
   `;
 
-  db.query(cartQuery, [userId], (err, cartResults) => {
+  db.query(cartQuery, [userId, userId], (err, cartResults) => {
     if (err) {
       return fail(res, 'Database error.', 500);
     }
@@ -42,13 +45,24 @@ const getSmartRecommendations = (req, res) => {
         return fail(res, 'Database error.', 500);
       }
 
-      if (result.length === 0) return ok(res, []);
+      if (result.length === 0) {
+        // Ultimate fallback if no cart and no activity exist
+        db.query(
+          "SELECT * FROM products WHERE id NOT IN (SELECT product_id FROM cart WHERE user_id = ?) LIMIT 10",
+          [userId],
+          (err, products) => {
+           if (err) return fail(res, 'Database error.', 500);
+           return ok(res, products.map(normalizeProduct));
+          }
+        );
+        return;
+      }
 
       const category = result[0].category;
 
       db.query(
-        "SELECT * FROM products WHERE category = ? LIMIT 10",
-        [category],
+        "SELECT * FROM products WHERE category = ? AND id NOT IN (SELECT product_id FROM cart WHERE user_id = ?) LIMIT 10",
+        [category, userId],
         (err, products) => {
           if (err) {
             return fail(res, 'Database error.', 500);
