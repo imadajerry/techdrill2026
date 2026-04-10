@@ -62,6 +62,9 @@ CREATE TABLE orders (
   shipping_address TEXT,
   eta DATETIME DEFAULT NULL,
   tracking_note TEXT,
+  razorpay_order_id VARCHAR(255) DEFAULT NULL,
+  razorpay_payment_id VARCHAR(255) DEFAULT NULL,
+  razorpay_signature VARCHAR(255) DEFAULT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 

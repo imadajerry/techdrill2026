@@ -3,10 +3,22 @@ import { Link, Navigate, useNavigate } from 'react-router-dom'
 import PageIntro from '../../components/ui/PageIntro'
 import SectionCard from '../../components/ui/SectionCard'
 import StatusBadge from '../../components/ui/StatusBadge'
+import { createRazorpayOrder } from '../../api/orders'
 import { useAppState } from '../../context/AppStateContext'
 import { useAuth } from '../../context/AuthContext'
 import { formatCurrency } from '../../utils/formatCurrency'
 import styles from './CustomerPages.module.css'
+
+const loadScript = (src: string) => {
+  return new Promise((resolve) => {
+    const script = document.createElement('script')
+    script.src = src
+    script.async = true
+    script.onload = () => resolve(true)
+    script.onerror = () => resolve(false)
+    document.body.appendChild(script)
+  })
+}
 
 export default function CheckoutPage() {
   const navigate = useNavigate()
@@ -38,30 +50,85 @@ export default function CheckoutPage() {
     setErrorMessage('')
     setIsSubmitting(true)
 
-    const createdOrder = placeOrder(
-      {
-        paymentMethod: 'Razorpay',
-        shippingAddress,
-      },
-      {
-        email: user?.email ?? 'customer@techdrill.dev',
-        name: user?.name ?? 'TechDrill Customer',
-      },
-    )
-
-    setIsSubmitting(false)
-
-    if (!createdOrder) {
-      setErrorMessage('Unable to place the order from the current cart state.')
-      return
+    const isScriptLoaded = await loadScript("https://checkout.razorpay.com/v1/checkout.js");
+    if (!isScriptLoaded) {
+      setErrorMessage("Razorpay SDK failed to load. Please check your internet connection.");
+      setIsSubmitting(false);
+      return;
     }
 
-    navigate('/orders', {
-      replace: true,
-      state: {
-        placedOrderId: createdOrder.id,
-      },
-    })
+    try {
+      const orderResponse = await createRazorpayOrder(total);
+      if (!orderResponse.success) {
+        setErrorMessage("Failed to secure checkout session. Please try again.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      const { id: order_id, currency, amount } = orderResponse.data;
+
+      const options = {
+        key: 'rzp_test_SbZLWD4zl8YqhQ', // As supplied from the earlier backend envs
+        amount: amount.toString(),
+        currency: currency,
+        name: 'TechDrill2026',
+        description: 'Complete your purchase',
+        order_id: order_id,
+        handler: async (response: any) => {
+          // Success Callback: Proceed with local application state order placement
+          const createdOrder = placeOrder(
+            {
+              paymentMethod: 'Razorpay',
+              shippingAddress,
+              razorpayDetails: {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              }
+            },
+            {
+              email: user?.email ?? 'customer@techdrill.dev',
+              name: user?.name ?? 'TechDrill Customer',
+            },
+          )
+
+          setIsSubmitting(false)
+
+          if (!createdOrder) {
+            setErrorMessage('Unable to place the order from the current cart state.')
+            return
+          }
+
+          navigate('/orders', {
+            replace: true,
+            state: {
+              placedOrderId: createdOrder.id,
+            },
+          })
+        },
+        prefill: {
+          name: user?.name ?? '',
+          email: user?.email ?? '',
+        },
+        theme: { color: '#3399cc' },
+        modal: {
+          ondismiss: function () {
+            setIsSubmitting(false);
+          }
+        }
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.on('payment.failed', function (response: any) {
+        setErrorMessage(response.error.description);
+        setIsSubmitting(false);
+      });
+      rzp.open();
+
+    } catch (error) {
+      setErrorMessage("Checkout service unavailable. Please contact support.");
+      setIsSubmitting(false);
+    }
   }
 
   return (

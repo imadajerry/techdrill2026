@@ -12,6 +12,9 @@ export type PlaceOrderInput = {
   total_amount: number
   payment_method: string
   shipping_address: string
+  razorpay_order_id?: string
+  razorpay_payment_id?: string
+  razorpay_signature?: string
 }
 
 export async function placeOrder(
@@ -29,4 +32,9 @@ export async function getMyOrders(): Promise<ApiResponse<CustomerOrder[]>> {
     '/api/orders/mine',
   )
   return response.data
+}
+
+export async function createRazorpayOrder(amount: number): Promise<ApiResponse<{ id: string, currency: string, amount: number }>> {
+  const response = await apiClient.post('/api/orders/razorpay-order', { amount });
+  return response.data;
 }

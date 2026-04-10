@@ -3,8 +3,8 @@ const db = require('../config/db');
 // ➕ Create Order
 const createOrder = (orderData, callback) => {
   const sql = `
-    INSERT INTO orders (user_id, total_amount, status, payment_method, payment_status, shipping_address, eta, tracking_note)
-    VALUES (?, ?, 'placed', ?, ?, ?, ?, ?)
+    INSERT INTO orders (user_id, total_amount, status, payment_method, payment_status, shipping_address, eta, tracking_note, razorpay_order_id, razorpay_payment_id, razorpay_signature)
+    VALUES (?, ?, 'placed', ?, ?, ?, ?, ?, ?, ?, ?)
   `;
   db.query(sql, [
     orderData.user_id,
@@ -14,6 +14,9 @@ const createOrder = (orderData, callback) => {
     orderData.shipping_address || '',
     orderData.eta || null,
     orderData.tracking_note || 'Order confirmed and waiting for ops acceptance.',
+    orderData.razorpay_order_id || null,
+    orderData.razorpay_payment_id || null,
+    orderData.razorpay_signature || null,
   ], callback);
 };
 
@@ -35,7 +38,7 @@ const getOrdersByUser = (userId, callback) => {
   const sql = `
     SELECT
       o.id, o.total_amount, o.status, o.payment_method, o.payment_status,
-      o.shipping_address, o.eta, o.tracking_note, o.created_at,
+      o.shipping_address, o.eta, o.tracking_note, o.razorpay_order_id, o.razorpay_payment_id, o.created_at,
       oi.id AS item_id, oi.quantity AS item_quantity, oi.size AS item_size, oi.price AS item_price,
       p.id AS product_id, p.name AS product_name, p.category AS product_category,
       p.price AS product_price, p.originalPrice AS product_originalPrice,
@@ -76,7 +79,7 @@ const getOrderById = (orderId, callback) => {
   const sql = `
     SELECT
       o.id, o.user_id, o.total_amount, o.status, o.payment_method, o.payment_status,
-      o.shipping_address, o.eta, o.tracking_note, o.created_at,
+      o.shipping_address, o.eta, o.tracking_note, o.razorpay_order_id, o.razorpay_payment_id, o.created_at,
       oi.id AS item_id, oi.quantity AS item_quantity, oi.size AS item_size, oi.price AS item_price,
       p.id AS product_id, p.name AS product_name, p.category AS product_category,
       p.price AS product_price, p.originalPrice AS product_originalPrice,
