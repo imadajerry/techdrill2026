@@ -8,7 +8,8 @@
     "groq-sdk": "^1.1.2",
     "jsonwebtoken": "^9.0.3",
     "mysql2": "^3.20.0",
-    "razorpay": "^2.9.6"
+    "razorpay": "^2.9.6",
+    "resend": "^6.10.0"
   },
   "name": "backend",
   "version": "1.0.0",
