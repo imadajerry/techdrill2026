@@ -122,9 +122,11 @@ export async function mockRegister(
     }
   }
 
+  const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+
   pendingRegistrations.set(input.email.toLowerCase(), {
     ...input,
-    otp: '123456',
+    otp: generatedOtp,
   })
 
   return {
@@ -132,7 +134,7 @@ export async function mockRegister(
     data: {
       email: input.email,
     },
-    message: 'OTP sent. Use 123456 in mock mode.',
+    message: `OTP sent. (Mock mode: Use ${generatedOtp})`,
   }
 }
 
@@ -153,7 +155,7 @@ export async function mockVerifyOtp(
   if (pendingUser.otp !== input.otp) {
     return {
       success: false,
-      message: 'Invalid OTP. Use 123456 in mock mode.',
+      message: 'Invalid OTP.',
     }
   }
 
