@@ -5,12 +5,13 @@ const app = require('./app');
 const connection = require('./config/db');
 
 // ✅ CONNECT TO DB
-connection.connect((err) => {
+connection.getConnection((err, conn) => {
   if (err) {
     console.error('Database connection failed:', err);
     return;
   }
   console.log('MySQL Connected...');
+  if (conn) conn.release();
 });
 
 const PORT = process.env.PORT || 8586;

@@ -15,11 +15,17 @@ INSERT INTO users (username, email, password, role, status) VALUES
 -- Products (match frontend mocks exactly)
 INSERT INTO products (name, category, price, originalPrice, image, description, stock, badge, targetGroup, reorder_level, sku) VALUES
 ('Velocity Sprint', 'Running',   6499, 7999, 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=80', 'Lightweight daily trainer built for long city miles.', 12, 'New', 'Men', 10, 'TD-RUN-001'),
-('Studio Court',    'Lifestyle',  5899, NULL, 'https://images.unsplash.com/photo-1543508282-6319a3e2621f?auto=format&fit=crop&w=900&q=80', 'Minimal low-top silhouette with premium leather finish.', 8, 'Bestseller', 'Women', 8, 'TD-LIFE-014'),
+('Studio Court',    'Lifestyle',  5899, 6199, 'https://images.unsplash.com/photo-1543508282-6319a3e2621f?auto=format&fit=crop&w=900&q=80', 'Minimal low-top silhouette with premium leather finish.', 8, 'Bestseller', 'Women', 8, 'TD-LIFE-014'),
 ('Summit Trek',     'Outdoor',    7299, 8599, 'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&w=900&q=80', 'Trail-ready support with all-weather grip and cushioning.', 5, 'Low stock', 'Unisex', 7, 'TD-OUT-009'),
 ('Metro Glide',     'Lifestyle',  5299, 6199, 'https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?auto=format&fit=crop&w=900&q=80', 'Soft neutral palette with cushioned comfort for all-day wear.', 16, 'Weekend pick', 'Men', 10, 'TD-LIFE-020'),
-('Circuit Pulse',   'Training',   6999, NULL, 'https://images.unsplash.com/photo-1608231387042-66d1773070a5?auto=format&fit=crop&w=900&q=80', 'Stability-focused cross trainer for quick cuts and indoor sessions.', 10, 'Trainer', 'Women', 9, 'TD-TRN-022'),
-('Canvas Draft',    'Casual',     3999, 4699, 'https://images.unsplash.com/photo-1600269452121-4f2416e55c28?auto=format&fit=crop&w=900&q=80', 'Clean everyday canvas pair with a low-profile cup sole.', 21, 'Everyday', 'Unisex', 10, 'TD-CAS-031');
+('Circuit Pulse',   'Training',   6999, 7200, 'https://images.unsplash.com/photo-1608231387042-66d1773070a5?auto=format&fit=crop&w=900&q=80', 'Stability-focused cross trainer for quick cuts and indoor sessions.', 10, 'Trainer', 'Women', 9, 'TD-TRN-022'),
+('Canvas Draft',    'Casual',     3999, 4699, 'https://images.unsplash.com/photo-1600269452121-4f2416e55c28?auto=format&fit=crop&w=900&q=80', 'Clean everyday canvas pair with a low-profile cup sole.', 21, 'Everyday', 'Unisex', 10, 'TD-CAS-031'),
+('Hoops Pro',       'Basketball', 8999, 10999, 'https://images.unsplash.com/photo-1515955656352-a1fa3ffcd111?auto=format&fit=crop&w=900&q=80', 'High-top support with superior ankle mobility for the court.', 14, 'Pro Series', 'Men', 5, 'TD-BSK-044'),
+('Cloud Stride',    'Walking',    4599, 5299, 'https://images.unsplash.com/photo-1491553895911-0055eca6402d?auto=format&fit=crop&w=900&q=80', 'Maximum cushioning designed specifically for walking comfort.', 20, 'Comfort', 'Women', 15, 'TD-WLK-051'),
+('Pitch Cleat',     'Football',   6299, 7499, 'https://images.unsplash.com/photo-1511556532299-8f662fc26c06?auto=format&fit=crop&w=900&q=80', 'Aggressive traction and lightweight build for explosive speed.', 18, 'Match Ready', 'Men', 8, 'TD-FTB-042'),
+('Kickflip Retro',  'Skateboard', 5499, 5700, 'https://images.unsplash.com/photo-1520256862855-398228c41684?auto=format&fit=crop&w=900&q=80', 'Durable suede and reinforced toe for skateboarding.', 11, 'Retro', 'Unisex', 12, 'TD-SKT-028'),
+('Marathon Elite',  'Running',    11999, 13999, 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=900&q=80', 'Carbon-plated racing shoe for elite marathon performance.', 4, 'Elite', 'Unisex', 3, 'TD-RUN-099'),
+('Alpaca Sandal',   'Sandals',    2999, 3499, 'https://images.unsplash.com/photo-1560769629-975ec94e6a86?auto=format&fit=crop&w=900&q=80', 'Adjustable straps with rugged outsole for light trails.', 30, 'Summer', 'Unisex', 20, 'TD-SNO-012');
 
 -- Sample pricing campaigns
 INSERT INTO pricing_campaigns (name, product_id, base_price, sale_price, starts_at, ends_at, status) VALUES
