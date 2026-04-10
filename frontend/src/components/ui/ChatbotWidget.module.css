@@ -1,0 +1,204 @@
+.chatbotWidget {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  font-family: var(--font-body);
+}
+
+.chatToggle {
+  background: var(--color-accent);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chatToggle:hover {
+  transform: scale(1.05);
+}
+
+.chatWindow {
+  display: flex;
+  width: 350px;
+  height: 500px;
+  background-color: var(--color-surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-soft);
+  position: absolute;
+  bottom: 80px;
+  right: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+}
+
+.chatHeader {
+  background: var(--color-accent);
+  color: white;
+  padding: 16px;
+  font-weight: bold;
+  font-family: var(--font-body);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.closeButton {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.chatBody {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  background-color: var(--color-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chatMsg {
+  max-width: 85%;
+  padding: 10px 14px;
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.msgUser {
+  background: var(--color-accent);
+  color: white;
+  margin-left: auto;
+  border-radius: 12px 12px 0 12px;
+}
+
+.msgBot {
+  background: var(--color-surface-alt);
+  color: var(--color-text-strong);
+  margin-right: auto;
+  border-radius: 12px 12px 12px 0;
+  border: 1px solid var(--color-border);
+}
+
+.productCard {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  padding: 12px;
+  border-radius: 8px;
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-decoration: none;
+}
+
+.productName {
+  font-weight: 500;
+  color: var(--color-text-strong);
+}
+
+.productPrice {
+  color: var(--color-accent);
+  font-weight: bold;
+}
+
+.chatInputArea {
+  display: flex;
+  padding: 12px;
+  background-color: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  gap: 8px;
+}
+
+.chatInput {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  outline: none;
+  font-size: 14px;
+  background-color: var(--color-surface);
+  color: var(--color-text-strong);
+}
+
+.chatInput:focus {
+  border-color: var(--color-accent);
+}
+
+.chatSend {
+  background: var(--color-accent);
+  color: white;
+  border: none;
+  padding: 0 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.chatSend:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.typingIndicator {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-style: italic;
+  margin-right: auto;
+}
+
+.languageContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 24px;
+  text-align: center;
+  gap: 16px;
+  background-color: var(--color-surface);
+}
+
+.languageTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text-strong);
+  margin-bottom: 8px;
+}
+
+.languageButtons {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+.langButton {
+  flex: 1;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface-alt);
+  color: var(--color-text-strong);
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.langButton:hover {
+  background-color: var(--color-accent);
+  color: white;
+  border-color: var(--color-accent);
+}
