@@ -23,8 +23,10 @@ function normalizeUserRecord(user) {
   };
 }
 
+const { sendOtpEmail } = require('../utils/mailer');
+
 function createOtp() {
-  return '123456';
+  return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 // 🔐 REGISTER
@@ -47,14 +49,22 @@ const registerUser = (req, res) => {
       return fail(res, 'An account with this email already exists.', 409);
     }
 
+    const otp = createOtp();
+
+    // Send the OTP via email
+    const emailSent = await sendOtpEmail(normalizedEmail, otp);
+    if (!emailSent) {
+      return fail(res, 'Failed to send OTP email. Please try again later.', 500);
+    }
+
     pendingRegistrations.set(normalizedEmail, {
       username: resolvedName,
       email: normalizedEmail,
       password: await bcrypt.hash(password, 10),
-      otp: createOtp(),
+      otp: otp,
     });
 
-    return ok(res, { email: normalizedEmail }, 'OTP sent. Use 123456 in the current backend implementation.', 201);
+    return ok(res, { email: normalizedEmail }, 'OTP sent to your email.', 201);
   });
 };
 
