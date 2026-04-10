@@ -119,7 +119,8 @@ export default function AdminUsersPage() {
               <div className={styles.rowActions}>
                 <StatusBadge tone="dark">{user.role}</StatusBadge>
                 <StatusBadge tone={getUserTone(user.status)}>{user.status}</StatusBadge>
-                {currentUser?.id !== user.id && (
+                {currentUser?.id !== user.id && 
+                 (currentUser?.role === 'superadmin' || (currentUser?.role === 'admin' && user.role === 'customer')) && (
                   <button
                     className={styles.secondaryButton}
                     onClick={() => toggleUserStatus(user.id)}
