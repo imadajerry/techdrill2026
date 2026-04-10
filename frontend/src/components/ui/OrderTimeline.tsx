@@ -37,11 +37,13 @@ export default function OrderTimeline({ status }: OrderTimelineProps) {
           <div className={styles.step} key={step}>
             <div
               className={`${styles.marker} ${
-                isCurrent
-                  ? styles.current
-                  : isComplete
-                    ? styles.complete
-                    : styles.pending
+                isCurrent && step === 'delivered'
+                  ? styles.complete
+                  : isCurrent
+                    ? styles.current
+                    : isComplete
+                      ? styles.complete
+                      : styles.pending
               }`.trim()}
             />
             <span className={styles.label}>{labels[step]}</span>
