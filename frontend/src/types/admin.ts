@@ -31,19 +31,20 @@ export type ManagedUser = {
 
 export type ReportTemplate = {
   description: string
-  format: 'xlsx' | 'pdf'
+  format: 'csv' | 'pdf'
   id: string
   periodLabel: string
   title: string
 }
 
 export type ExportRecord = {
-  format: 'xlsx' | 'pdf'
+  format: 'csv' | 'pdf'
   generatedAt: string
   id: string
   requestedBy: string
   status: 'ready' | 'processing'
   title: string
+  downloadUrl?: string
 }
 
 export type PricingCampaign = {
