@@ -10,6 +10,7 @@ app.use(cors({
   credentials: true,
 }));
 
+
 // Routes
 const authRoutes = require('./routes/authRoutes');
 app.use('/api/auth', authRoutes);
@@ -28,6 +29,9 @@ app.use('/api', adminRoutes);
 
 const favouriteRoutes = require('./routes/favouriteRoutes');
 app.use('/api', favouriteRoutes);
+
+const chatRoutes = require('./routes/chatRoutes');
+app.use('/api', chatRoutes);
 
 const recomRoutes = require('./routes/smartRecommendation');
 app.use('/api', recomRoutes);
