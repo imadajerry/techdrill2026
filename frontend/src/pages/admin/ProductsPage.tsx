@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import PageIntro from '../../components/ui/PageIntro'
+import ProductForm from './ProductForm'
 import SectionCard from '../../components/ui/SectionCard'
 import StatCard from '../../components/ui/StatCard'
 import StatusBadge from '../../components/ui/StatusBadge'
@@ -26,9 +27,14 @@ export default function AdminProductsPage() {
     inventoryItems,
     pricingCampaigns,
     updateInventoryBasePrice,
+    adminAddProduct,
+    adminUpdateProduct,
+    adminDeleteProduct,
   } = useAppState()
   const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({})
   const [feedbackMessage, setFeedbackMessage] = useState('')
+  const [isAddingProduct, setIsAddingProduct] = useState(false)
+  const [editingProductId, setEditingProductId] = useState<string | null>(null)
   const lowStockCount = inventoryItems.filter(
     (item) => item.stock <= item.reorderLevel,
   ).length
@@ -54,36 +60,55 @@ export default function AdminProductsPage() {
         title="Manage stock and product readiness."
       />
 
-      <div className={styles.statsGrid}>
-        <StatCard
-          helper="These records already match the shared product shape used by the storefront."
-          label="Tracked SKUs"
-          value={`${inventoryItems.length}`}
-        />
-        <StatCard
-          helper="These need reorder or allocation review."
-          label="Low stock alerts"
-          tone="accent"
-          value={`${lowStockCount}`}
-        />
-        <StatCard
-          helper="Reserved stock is separated from on-hand inventory."
-          label="Reserved units"
-          tone="dark"
-          value={`${inventoryItems.reduce((sum, item) => sum + item.reservedStock, 0)}`}
-        />
-      </div>
-
       {feedbackMessage ? (
         <StatusBadge tone="accent">{feedbackMessage}</StatusBadge>
       ) : null}
 
       <SectionCard
-        description="The next step is connecting create, edit, and stock-adjustment mutations to the backend."
+        description="Manage products, pricing, and stock levels."
         title="Inventory watch"
       >
+        {!isAddingProduct && !editingProductId && (
+          <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+            <button className={styles.actionButton} onClick={() => setIsAddingProduct(true)}>
+              + Add New Product
+            </button>
+          </div>
+        )}
+        
         <div className={styles.inventoryGrid}>
+          {isAddingProduct && (
+            <ProductForm
+              onSubmit={async (data) => {
+                const success = await adminAddProduct(data)
+                if (success) {
+                  setIsAddingProduct(false)
+                  setFeedbackMessage('Product created successfully.')
+                }
+                return success
+              }}
+              onCancel={() => setIsAddingProduct(false)}
+            />
+          )}
+
           {inventoryItems.map((item) => {
+            if (editingProductId === item.id) {
+              return (
+                <ProductForm
+                  key={item.id}
+                  initialData={item}
+                  onSubmit={async (data) => {
+                    const success = await adminUpdateProduct(item.id, data)
+                    if (success) {
+                      setEditingProductId(null)
+                      setFeedbackMessage('Product updated successfully.')
+                    }
+                    return success
+                  }}
+                  onCancel={() => setEditingProductId(null)}
+                />
+              )
+            }
             const stockRatio = Math.min(100, (item.stock / (item.reorderLevel * 2)) * 100)
             const liveCampaign = pricingCampaigns.find(
               (campaign) =>
@@ -211,6 +236,28 @@ export default function AdminProductsPage() {
                     type="button"
                   >
                     Reserve 1
+                  </button>
+                  <button
+                    className={styles.secondaryButton}
+                    onClick={() => setEditingProductId(item.id)}
+                    type="button"
+                    style={{ marginLeft: 'auto' }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    className={styles.secondaryButton}
+                    onClick={async () => {
+                      if (window.confirm('Are you sure you want to delete this product?')) {
+                        const success = await adminDeleteProduct(item.id)
+                        if (success) setFeedbackMessage('Product deleted.')
+                        else setFeedbackMessage('Failed to delete product.')
+                      }
+                    }}
+                    type="button"
+                    style={{ borderColor: '#c82020', color: '#c82020' }}
+                  >
+                    Delete
                   </button>
                 </div>
               </article>

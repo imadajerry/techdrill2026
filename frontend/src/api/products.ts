@@ -21,7 +21,7 @@ export async function getProduct(
 }
 
 export async function createProduct(
-  product: Omit<Product, 'id'>,
+  product: Omit<Product, 'id'> & { sku?: string; reorder_level?: number },
 ): Promise<ApiResponse<{ id: string }>> {
   const response = await apiClient.post<ApiResponse<{ id: string }>>(
     '/api/products',
@@ -32,7 +32,7 @@ export async function createProduct(
 
 export async function updateProduct(
   id: string,
-  product: Partial<Product>,
+  product: Partial<Product & { sku?: string; reorder_level?: number }>,
 ): Promise<ApiResponse<{ id: string }>> {
   const response = await apiClient.put<ApiResponse<{ id: string }>>(
     `/api/products/${id}`,

@@ -111,6 +111,9 @@ type AppStateContextValue = {
   updateCartItemQuantity: (itemId: string, delta: number) => void
   updateInventoryBasePrice: (itemId: string, nextPrice: number) => boolean
   removeCartItem: (itemId: string) => void
+  adminAddProduct: (product: Omit<InventoryItem, 'id'>) => Promise<boolean>
+  adminUpdateProduct: (id: string, product: Partial<InventoryItem>) => Promise<boolean>
+  adminDeleteProduct: (id: string) => Promise<boolean>
 }
 
 const AppStateContext = createContext<AppStateContextValue | undefined>(undefined)
@@ -529,7 +532,9 @@ export function AppStateProvider({ children }: PropsWithChildren) {
 
     // API call with rollback on failure
     if (USE_API && isAuthenticated) {
-      cartApi.addToCart(productId, size, 1, selectedProduct.price).catch(() => {
+      cartApi.addToCart(productId, size, 1, selectedProduct.price).then(() => {
+        fetchRecommendations()
+      }).catch(() => {
         console.warn('Failed to sync cart addition to API, rolling back')
         // Rollback: remove the item we just added or decrement quantity
         setCartItems((currentItems) => {
@@ -587,12 +592,14 @@ export function AppStateProvider({ children }: PropsWithChildren) {
   }
 
   function updateCartItemQuantity(itemId: string, delta: number) {
-    let newQuantity = 0
+    const currentItem = cartItems.find((item) => item.id === itemId)
+    if (!currentItem) return
+
+    const newQuantity = Math.max(1, Math.min(currentItem.product.stock, currentItem.quantity + delta))
 
     setCartItems((currentItems) =>
       currentItems.map((item) => {
         if (item.id !== itemId) return item
-        newQuantity = Math.max(1, Math.min(item.product.stock, item.quantity + delta))
         return { ...item, quantity: newQuantity }
       }),
     )
@@ -610,14 +617,20 @@ export function AppStateProvider({ children }: PropsWithChildren) {
     )
 
     if (USE_API && isAuthenticated) {
-      cartApi.removeCartItem(itemId).catch(() => {
+      cartApi.removeCartItem(itemId).then(() => {
+        fetchRecommendations()
+      }).catch(() => {
         console.warn('Failed to sync cart removal to API')
       })
     }
   }
 
   function advanceAdminOrder(orderId: string) {
-    let nextStatus: OrderStatus | null = null
+    const currentOrder = adminOrders.find((order) => order.id === orderId)
+    if (!currentOrder) return null
+
+    const nextStatus = getNextOrderStatus(currentOrder.status)
+    if (!nextStatus) return null
 
     setAdminOrders((currentOrders) =>
       currentOrders.map((order) => {
@@ -667,7 +680,10 @@ export function AppStateProvider({ children }: PropsWithChildren) {
   }
 
   function toggleUserStatus(userId: string) {
-    let nextStatus: ManagedUser['status'] | null = null
+    const currentUser = managedUsers.find((u) => u.id === userId)
+    if (!currentUser) return null
+
+    const nextStatus = getNextUserStatus(currentUser.status)
 
     setManagedUsers((currentUsers) =>
       currentUsers.map((u) => {
@@ -688,8 +704,11 @@ export function AppStateProvider({ children }: PropsWithChildren) {
   }
 
   function adjustInventoryStock(itemId: string, delta: number) {
-    let updatedProduct: Product | null = null
-    let newStock = 0
+    const currentItem = inventoryItems.find((item) => item.id === itemId)
+    if (!currentItem) return
+
+    const newStock = Math.max(0, currentItem.stock + delta)
+    const updatedProduct = { ...currentItem, stock: newStock }
 
     setInventoryItems((currentItems) =>
       currentItems.map((item) => {
@@ -704,9 +723,7 @@ export function AppStateProvider({ children }: PropsWithChildren) {
       }),
     )
 
-    if (updatedProduct) {
-      syncProductReferences(updatedProduct)
-    }
+    syncProductReferences(updatedProduct)
 
     if (USE_API && isAuthenticated) {
       adminApi.updateInventory(itemId, { stock: newStock }).catch(() => {
@@ -1012,6 +1029,85 @@ export function AppStateProvider({ children }: PropsWithChildren) {
     return recentExports.find((item) => item.id === exportId) ?? null
   }
 
+  async function adminAddProduct(product: Omit<InventoryItem, 'id'>): Promise<boolean> {
+    try {
+      if (!USE_API || !isAuthenticated) return false
+
+      const apiInput = {
+        name: product.name,
+        category: product.category,
+        price: product.price,
+        originalPrice: product.originalPrice,
+        image: product.image,
+        description: product.description,
+        stock: product.stock,
+        badge: product.badge,
+        targetGroup: product.targetGroup,
+        sku: product.sku,
+        reorder_level: product.reorderLevel
+      }
+      
+      const response = await productsApi.createProduct(apiInput)
+      if (response.success && response.data?.id) {
+        const newProduct: Product = {
+          ...product,
+          id: response.data.id
+        }
+        
+        const newInventoryItem: InventoryItem = {
+          ...newProduct,
+          sku: product.sku,
+          reorderLevel: product.reorderLevel,
+          reservedStock: product.reservedStock
+        }
+        
+        setProducts(curr => [newProduct, ...curr])
+        setInventoryItems(curr => [newInventoryItem, ...curr])
+        return true
+      }
+      return false
+    } catch {
+      return false
+    }
+  }
+
+  async function adminUpdateProduct(id: string, product: Partial<InventoryItem>): Promise<boolean> {
+    try {
+      if (!USE_API || !isAuthenticated) return false
+
+      const apiInput = {
+        ...product,
+        reorder_level: product.reorderLevel
+      }
+      
+      const response = await productsApi.updateProduct(id, apiInput)
+      if (response.success) {
+        setProducts(curr => curr.map(p => p.id === id ? { ...p, ...product } : p))
+        setInventoryItems(curr => curr.map(item => item.id === id ? { ...item, ...product } : item))
+        return true
+      }
+      return false
+    } catch {
+      return false
+    }
+  }
+
+  async function adminDeleteProduct(id: string): Promise<boolean> {
+    try {
+      if (!USE_API || !isAuthenticated) return false
+
+      const response = await productsApi.deleteProduct(id)
+      if (response.success) {
+        setProducts(curr => curr.filter(p => p.id !== id))
+        setInventoryItems(curr => curr.filter(item => item.id !== id))
+        return true
+      }
+      return false
+    } catch {
+      return false
+    }
+  }
+
   // ── Derived state ─────────────────────────────────────────────────────────
 
   const favouriteProducts = products.filter((product) =>
@@ -1071,6 +1167,9 @@ export function AppStateProvider({ children }: PropsWithChildren) {
         updateCartItemQuantity,
         updateInventoryBasePrice,
         removeCartItem,
+        adminAddProduct,
+        adminUpdateProduct,
+        adminDeleteProduct,
       }}
     >
       {children}

@@ -38,9 +38,14 @@ const getProductsByCategory = (category, callback) => {
   db.query("SELECT * FROM products WHERE category = ?", [category], callback);
 };
 
-// 🔍 Search products by name
+// 🔍 Search products by name, description, or category
 const searchProducts = (query, callback) => {
-  db.query("SELECT * FROM products WHERE name LIKE ?", [`%${query}%`], callback);
+  const keyword = `%${query}%`;
+  db.query(
+    "SELECT id, name, category, price, description FROM products WHERE name LIKE ? OR category LIKE ? OR description LIKE ? LIMIT 3", 
+    [keyword, keyword, keyword], 
+    callback
+  );
 };
 
 // ✏️ Update Product
