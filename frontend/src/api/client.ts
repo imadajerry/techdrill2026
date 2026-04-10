@@ -9,7 +9,7 @@ apiClient.interceptors.request.use((config) => {
   const session = readStoredSession()
 
   if (session?.token) {
-    config.headers?.set('Authorization', `Bearer ${session.token}`)
+    config.headers.set('Authorization', `Bearer ${session.token}`)
   }
 
   return config
