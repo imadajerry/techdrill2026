@@ -4,6 +4,7 @@ import SectionCard from '../../components/ui/SectionCard'
 import StatCard from '../../components/ui/StatCard'
 import StatusBadge from '../../components/ui/StatusBadge'
 import { useAppState } from '../../context/AppStateContext'
+import { useAuth } from '../../context/AuthContext'
 import type { UserRole } from '../../types/auth'
 import { formatDate } from '../../utils/formatDate'
 import styles from './AdminPages.module.css'
@@ -36,6 +37,7 @@ function getUserActionLabel(status: 'active' | 'blocked' | 'pending') {
 
 export default function AdminUsersPage() {
   const { managedUsers, toggleUserStatus } = useAppState()
+  const { user: currentUser } = useAuth()
   const [selectedRole, setSelectedRole] = useState<'all' | UserRole>('all')
 
   const filteredUsers =
@@ -104,7 +106,10 @@ export default function AdminUsersPage() {
           {filteredUsers.map((user) => (
             <article className={styles.row} key={user.id}>
               <div>
-                <h3 className={styles.rowTitle}>{user.name}</h3>
+                <h3 className={styles.rowTitle}>
+                  {user.name}
+                  {currentUser?.id === user.id ? ' (you)' : ''}
+                </h3>
                 <div className={styles.rowMeta}>
                   <span>{user.email}</span>
                   <span>Joined {formatDate(user.joinedAt)}</span>
@@ -114,13 +119,15 @@ export default function AdminUsersPage() {
               <div className={styles.rowActions}>
                 <StatusBadge tone="dark">{user.role}</StatusBadge>
                 <StatusBadge tone={getUserTone(user.status)}>{user.status}</StatusBadge>
-                <button
-                  className={styles.secondaryButton}
-                  onClick={() => toggleUserStatus(user.id)}
-                  type="button"
-                >
-                  {getUserActionLabel(user.status)}
-                </button>
+                {currentUser?.id !== user.id && (
+                  <button
+                    className={styles.secondaryButton}
+                    onClick={() => toggleUserStatus(user.id)}
+                    type="button"
+                  >
+                    {getUserActionLabel(user.status)}
+                  </button>
+                )}
               </div>
             </article>
           ))}
